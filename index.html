@@ -11,26 +11,49 @@
     <div class="container">
         <h1>🚢 Gra w Statki</h1>
         
+        <div id="setup-panel" class="setup-panel">
+            <h2>Przygotowanie do bitwy</h2>
+            <p>1. Wybierz statek. 2. Wybierz orientację. 3. Kliknij na swoją planszę, aby go postawić.</p>
+            <button id="rotate-btn" class="btn">Orientacja: Poziomo (Kliknij, aby zmienić)</button>
+            
+            <div class="ship-dock">
+                <div class="ship-preview" data-size="5" data-name="carrier">
+                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
+                </div>
+                <div class="ship-preview" data-size="4" data-name="battleship">
+                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
+                </div>
+                <div class="ship-preview" data-size="3" data-name="cruiser">
+                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
+                </div>
+                <div class="ship-preview" data-size="3" data-name="submarine">
+                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
+                </div>
+                <div class="ship-preview" data-size="2" data-name="destroyer">
+                    <div class="dock-cell"></div><div class="dock-cell"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="start-game-btn" class="btn" style="display: none;">ROZPOCZNIJ BITWĘ!</button>
+            <p id="message">Skonfiguruj swoją flotę powyżej.</p>
+        </div>
+
         <div class="game-container">
             <div class="board-section">
                 <h2>Twoja Plansza</h2>
                 <div id="player-board" class="board"></div>
             </div>
-
             <div class="board-section">
                 <h2>Plansza Komputera</h2>
                 <div id="computer-board" class="board"></div>
             </div>
         </div>
 
-        <div class="controls">
-            <button id="start-game-btn">Rozpocznij Nową Grę</button>
-            <p id="message">Rozmieść statki i przygotuj się do bitwy!</p>
-        </div>
-
         <div class="legend">
             <p><strong>Legenda:</strong></p>
-            <span class="dot ship"></span> Statek 
+            <span class="dot ship"></span> Twój statek 
             <span class="dot hit"></span> Trafiony 
             <span class="dot miss"></span> Pudło
         </div>
