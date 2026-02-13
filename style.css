@@ -1,7 +1,6 @@
-/* Podstawowe ustawienia strony */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #001f3f; /* Głęboki granat (jak ocean) */
+    background-color: #001f3f; 
     color: white;
     display: flex;
     justify-content: center;
@@ -17,15 +16,47 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     text-align: center;
     backdrop-filter: blur(10px);
+    max-width: 900px;
 }
 
-h1 {
-    margin-top: 0;
-    text-transform: uppercase;
-    letter-spacing: 3px;
+h1 { margin-top: 0; letter-spacing: 2px; }
+
+/* --- NOWY PANEL SETUPU --- */
+.setup-panel {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
 }
 
-/* Układ plansz obok siebie */
+.ship-dock {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: flex-start;
+    margin-top: 20px;
+    min-height: 150px; /* Miejsce na obrócone statki */
+}
+
+.ship-preview {
+    display: flex;
+    cursor: pointer;
+    border: 3px solid transparent;
+    padding: 2px;
+    transition: transform 0.2s;
+}
+
+.ship-preview:hover { transform: scale(1.05); }
+.ship-preview.vertical { flex-direction: column; }
+
+.dock-cell {
+    width: 25px;
+    height: 25px;
+    background-color: #aaa;
+    border: 1px solid #333;
+}
+
+/* --- PLANSZE --- */
 .game-container {
     display: flex;
     gap: 40px;
@@ -34,98 +65,70 @@ h1 {
     margin-bottom: 20px;
 }
 
-.board-section h2 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-}
-
-/* Tworzenie siatki 10x10 za pomocą CSS Grid */
 .board {
     display: grid;
     grid-template-columns: repeat(10, 30px);
     grid-template-rows: repeat(10, 30px);
     gap: 1px;
-    background-color: #0074D9; /* Kolor linii wody */
+    background-color: #0074D9;
     border: 3px solid #004a8c;
 }
 
 .cell {
     width: 30px;
     height: 30px;
-    background-color: #7FDBFF; /* Jasna woda */
+    background-color: #7FDBFF;
     cursor: pointer;
-    transition: background-color 0.2s;
 }
 
-.cell:hover {
-    background-color: #b3e5fc;
-}
+.cell:hover { background-color: #b3e5fc; }
 
-/* Style dla stanów pól */
+/* STYLE STATKÓW */
 .cell.ship {
-    background-color: #555; /* Szary kolor statku */
-    border-radius: 20%;
+    background-color: #555; 
+}
+
+/* ROZWIĄZANIE TWOJEGO PROBLEMU: UKRYCIE STATKÓW KOMPUTERA */
+#computer-board .cell.ship {
+    background-color: #7FDBFF; /* Kamuflaż - kolor wody */
 }
 
 .cell.hit {
-    background-color: #FF4136; /* Czerwony - trafiony! */
-    position: relative;
+    background-color: #FF4136 !important; /* !important wymusza kolor nawet na ukrytym statku */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .cell.hit::after {
     content: "X";
     color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
+    font-weight: bold;
 }
 
 .cell.miss {
-    background-color: #001f3f; /* Ciemny - pudło (woda) */
+    background-color: #001f3f !important;
     opacity: 0.5;
 }
 
 /* Przycisk i wiadomości */
-.controls {
-    margin-top: 20px;
-}
-
-#start-game-btn {
+.btn {
     background-color: #2ECC40;
     color: white;
     border: none;
-    padding: 10px 25px;
+    padding: 10px 20px;
     font-size: 1rem;
     border-radius: 5px;
     cursor: pointer;
-    transition: transform 0.2s;
+    margin: 5px;
 }
-
-#start-game-btn:hover {
-    transform: scale(1.05);
-    background-color: #28b438;
-}
+.btn:hover { background-color: #28b438; }
 
 #message {
     font-weight: bold;
-    margin-top: 15px;
-    min-height: 1.2em;
+    font-size: 1.1rem;
+    color: #FFDC00; /* Żółty tekst ostrzeżeń/info */
 }
 
-/* Legenda pod planszami */
-.legend {
-    margin-top: 20px;
-    font-size: 0.9rem;
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-}
-
-.dot {
-    height: 12px;
-    width: 12px;
-    display: inline-block;
-    border-radius: 50%;
-    margin-right: 5px;
-}
+.legend { display: flex; justify-content: center; gap: 15px; margin-top: 15px;}
+.dot { height: 12px; width: 12px; display: inline-block; border-radius: 50%; }
