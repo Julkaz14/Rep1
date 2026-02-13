@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gra w Statki - Projekt Semestralny</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>🚢 Gra w Statki</h1>
+        
+        <div class="game-container">
+            <div class="board-section">
+                <h2>Twoja Plansza</h2>
+                <div id="player-board" class="board"></div>
+            </div>
+
+            <div class="board-section">
+                <h2>Plansza Komputera</h2>
+                <div id="computer-board" class="board"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="start-game-btn">Rozpocznij Nową Grę</button>
+            <p id="message">Rozmieść statki i przygotuj się do bitwy!</p>
+        </div>
+
+        <div class="legend">
+            <p><strong>Legenda:</strong></p>
+            <span class="dot ship"></span> Statek 
+            <span class="dot hit"></span> Trafiony 
+            <span class="dot miss"></span> Pudło
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
