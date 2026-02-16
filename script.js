@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // AUDIO ELEMENTY
     const music = document.getElementById('bg-music');
     const sndHit = document.getElementById('snd-hit');
     const sndSink = document.getElementById('snd-sink');
@@ -22,9 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = [];
 
-    // Funkcja do odtwarzania efektów bez ucinania
     function playSound(audioElement) {
-        audioElement.volume = 0.5; // Głośność efektów na 50%
+        if(!audioElement) return;
+        audioElement.volume = 0.4;
         audioElement.currentTime = 0;
         audioElement.play().catch(() => {});
     }
@@ -38,18 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function initGame() {
-        playerBoard.innerHTML = ''; computerBoard.innerHTML = '';
+        playerBoard.innerHTML = ''; 
+        computerBoard.innerHTML = '';
+        renderShipyard();
         for (let i = 0; i < 100; i++) {
             const pCell = document.createElement('div');
-            pCell.classList.add('cell'); pCell.dataset.id = i;
+            pCell.classList.add('cell'); 
+            pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
             
             const cCell = document.createElement('div');
-            cCell.classList.add('cell'); cCell.dataset.id = i;
+            cCell.classList.add('cell'); 
+            cCell.dataset.id = i;
             cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
-        renderShipyard();
     }
 
     function renderShipyard() {
@@ -57,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shipTypes.forEach((len, idx) => {
             const slot = document.createElement('div');
             slot.classList.add('ship-slot');
+            slot.dataset.slotIdx = idx; // Przypisujemy slot do indeksu statku
             
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
@@ -68,46 +71,47 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.draggable = true;
 
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
-            ship.addEventListener('click', () => rotateShip(ship));
+            ship.addEventListener('click', (e) => {
+                e.stopPropagation(); // Zapobiega błędom bąbelkowania
+                handleShipClick(ship);
+            });
             
             slot.appendChild(ship);
             shipyard.appendChild(slot);
         });
     }
 
-    // --- KLUCZOWA POPRAWKA OBROTU I POWROTU DO STOCZNI ---
-    function rotateShip(ship) {
+    // --- NOWA LOGIKA OBSŁUGI KLIKNIĘCIA (POWRÓT I ROTACJA) ---
+    function handleShipClick(ship) {
         if(gameActive) return;
 
-        // Jeśli statek jest na planszy gracza i w niego klikniemy:
-        if(ship.parentElement === playerBoard) {
-            // 1. Znajdujemy jego prawidłowy slot w stoczni na podstawie ID (np. "ship-2" -> index 2)
-            const shipIndex = parseInt(ship.id.split('-')[1]);
-            const slot = shipyard.children[shipIndex];
+        if(ship.parentElement.classList.contains('grid')) {
+            // Jeśli statek jest na planszy -> cofnij go do stoczni
+            const shipIdx = ship.id.split('-')[1];
+            const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
             
-            // 2. Resetujemy mu pozycję, żeby nie lewitował, lecz ułożył się w slocie
+            // Resetuj style pozycjonowania
             ship.style.position = "relative";
-            ship.style.left = "0px";
-            ship.style.top = "0px";
+            ship.style.left = "0";
+            ship.style.top = "0";
             
-            // 3. Przenosimy ten sam element do stoczni (nie tworzymy klonów!)
-            slot.appendChild(ship);
-            
-            // 4. Usuwamy go z tablicy postawionych statków
+            // Usuń z pamięci i przenieś element DOM
             playerShips = playerShips.filter(s => s.id !== ship.id);
-            startBattleBtn.classList.add('hidden'); // Ukrywamy przycisk startu, bo brakuje statku
-            return;
+            originalSlot.appendChild(ship);
+            startBattleBtn.classList.add('hidden');
+        } else {
+            // Jeśli statek jest w stoczni -> po prostu go obróć
+            const isVert = ship.dataset.vert === "true";
+            const len = parseInt(ship.dataset.len);
+            const newVert = !isVert;
+            ship.dataset.vert = newVert;
+            ship.style.width = newVert ? "40px" : `${len * 40}px`;
+            ship.style.height = newVert ? `${len * 40}px` : "40px";
         }
-
-        // Jeśli statek jest w stoczni - obracamy go normalnie
-        const isVert = ship.dataset.vert === "true";
-        const len = parseInt(ship.dataset.len);
-        ship.dataset.vert = !isVert;
-        ship.style.width = !isVert ? "40px" : `${len * 40}px`;
-        ship.style.height = !isVert ? `${len * 40}px` : "40px";
     }
 
     playerBoard.addEventListener('dragover', e => e.preventDefault());
+    
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
         const rect = playerBoard.getBoundingClientRect();
@@ -123,10 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             
+            // Usuń starą pozycję tego samego statku jeśli istniała
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
             
-            // Po puszczeniu statku na planszę, pozycjonujemy go absolutnie
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${cellX * 40}px`;
             draggedShip.style.top = `${cellY * 40}px`;
@@ -139,7 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function canPlace(id, len, vert, sId, currentShips) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
+            // Sprawdź krawędzie i zajętość
+            if (curr > 99 || (vert && curr < 0)) return false;
+            if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
             if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
@@ -172,13 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateStatus() {
         if (!gameActive) return;
-        if (isPlayerTurn) {
-            statusText.innerText = "TWOJA TURA";
-            statusText.style.color = "#1e4d77";
-        } else {
-            statusText.innerText = "TURA PRZECIWNIKA...";
-            statusText.style.color = "#d32f2f";
-        }
+        statusText.innerText = isPlayerTurn ? "TWOJA TURA" : "TURA PRZECIWNIKA...";
+        statusText.style.color = isPlayerTurn ? "#1e4d77" : "#d32f2f";
     }
 
     function playerAttack(id, cell) {
@@ -188,22 +189,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
-            
-            // --- DŹWIĘK TRAFIENIA LUB ZATOPIENIA ---
             if (ship.hits === ship.len) {
-                playSound(sndSink); // Wielki wybuch
+                playSound(sndSink);
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             } else {
-                playSound(sndHit); // Zwykły wybuch
+                playSound(sndHit);
             }
-            
             checkGameOver();
         } else {
             cell.classList.add('miss');
-            playSound(sndMiss); // Dźwięk plusku wody
+            playSound(sndMiss);
             isPlayerTurn = false;
             updateStatus();
-            setTimeout(cpuAttack, 1200);
+            setTimeout(cpuAttack, 1000);
         }
     }
 
@@ -220,27 +218,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
-            
-            // --- DŹWIĘK TRAFIENIA LUB ZATOPIENIA (Dla wroga) ---
             if (ship.hits === ship.len) {
                 playSound(sndSink);
                 ship.coords.forEach(c => cells[c].classList.add('sunk'));
                 cpuHuntQueue = [];
             } else {
                 playSound(sndHit);
+                [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
+                    if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
+                        if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
+                    }
+                });
             }
-
-            [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
-                if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
-                    if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
-                }
-            });
-            
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 900);
+            if (gameActive) setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss');
-            playSound(sndMiss); // Dźwięk plusku wody
+            playSound(sndMiss);
             isPlayerTurn = true;
             updateStatus();
         }
