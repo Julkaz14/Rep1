@@ -6,278 +6,205 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const music = document.getElementById('bg-music');
 
-    // Wymagane statki: 1x5, 1x4, 2x3, 2x2
     const shipsToPlace = [
-        { id: 'ship-5', length: 5 },
-        { id: 'ship-4', length: 4 },
-        { id: 'ship-3a', length: 3 },
-        { id: 'ship-3b', length: 3 },
-        { id: 'ship-2a', length: 2 },
-        { id: 'ship-2b', length: 2 }
+        { id: 's5', len: 5 }, { id: 's4', len: 4 },
+        { id: 's3a', len: 3 }, { id: 's3b', len: 3 },
+        { id: 's2a', len: 2 }, { id: 's2b', len: 2 }
     ];
 
     let draggedShip = null;
-    let draggedShipLength = 0;
-    let isVertical = false;
-    let playerShipsCoords = []; // Przechowuje zajęte kratki [ {id, coords: []} ]
+    let playerShipsCoords = [];
     let computerShipsCoords = [];
     let gameActive = false;
+    let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    // START GRY (Menu)
     document.getElementById('play-btn').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         music.volume = 0.2;
-        music.play().catch(()=>console.log("Muzyka zablokowana przez auto-play"));
-        initBoards();
-        generateShipsInShipyard();
+        music.play();
+        init();
     });
 
-    // TWORZENIE PLANSZ (10x10)
-    function initBoards() {
+    function init() {
         for (let i = 0; i < 100; i++) {
-            // Komórki gracza (do upuszczania statków)
             const pCell = document.createElement('div');
             pCell.classList.add('cell');
             pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
 
-            // Komórki komputera (do strzelania)
             const cCell = document.createElement('div');
             cCell.classList.add('cell');
             cCell.dataset.id = i;
-            cCell.addEventListener('click', () => attackComputer(i, cCell));
+            cCell.addEventListener('click', () => playerShoot(i, cCell));
             computerBoard.appendChild(cCell);
         }
+        genShipyard();
     }
 
-    // TWORZENIE STATKÓW W STOCZNI
-    function generateShipsInShipyard() {
-        shipsToPlace.forEach(ship => {
-            const shipDiv = document.createElement('div');
-            shipDiv.classList.add('ship-drag');
-            shipDiv.id = ship.id;
-            shipDiv.draggable = true;
-            shipDiv.dataset.length = ship.length;
-            shipDiv.dataset.vertical = "false";
+    function genShipyard() {
+        shipsToPlace.forEach(s => {
+            const ship = document.createElement('div');
+            ship.classList.add('ship-drag');
+            ship.id = s.id;
+            ship.draggable = true;
+            ship.dataset.len = s.len;
+            ship.dataset.vert = "false";
+            // Rozmiar fizyczny statku
+            ship.style.width = `${s.len * 40}px`;
+            ship.style.height = `40px`;
 
-            // Dodanie wizualnych "kratek" do statku
-            for(let i=0; i < ship.length; i++) {
-                const part = document.createElement('div');
-                part.classList.add('ship-part');
-                shipDiv.appendChild(part);
-            }
-
-            // Obracanie po kliknięciu
-            shipDiv.addEventListener('click', (e) => rotateShip(e, shipDiv));
-
-            // Zdarzenia przeciągania
-            shipDiv.addEventListener('dragstart', dragStart);
-            shipDiv.addEventListener('dragend', dragEnd);
-
-            shipyard.appendChild(shipDiv);
+            ship.addEventListener('dragstart', (e) => {
+                draggedShip = ship;
+                setTimeout(() => ship.style.opacity = "0.5", 0);
+            });
+            ship.addEventListener('dragend', () => {
+                draggedShip.style.opacity = "1";
+                draggedShip = null;
+            });
+            ship.addEventListener('click', () => rotateShip(ship));
+            shipyard.appendChild(ship);
         });
     }
 
-    // --- LOGIKA PRZECIĄGANIA ---
-    function dragStart(e) {
-        draggedShip = e.target;
-        draggedShipLength = parseInt(draggedShip.dataset.length);
-        isVertical = draggedShip.dataset.vertical === "true";
-        setTimeout(() => draggedShip.style.display = "none", 0);
-    }
-
-    function dragEnd() {
-        draggedShip.style.display = "flex";
-        draggedShip = null;
-    }
-
-    // Pozwala na rzucenie statku na planszę
-    playerBoard.addEventListener('dragover', e => e.preventDefault());
-
-    // Upuszczanie statku na mapę
-    playerBoard.addEventListener('drop', e => {
-        e.preventDefault();
-        if(!draggedShip || !e.target.classList.contains('cell')) return;
-
-        const startId = parseInt(e.target.dataset.id);
-        const row = Math.floor(startId / 10);
-        let currentCoords = [];
-
-        // Sprawdzanie czy statek się mieści i nie nakłada
-        for(let i=0; i < draggedShipLength; i++) {
-            let nextId = isVertical ? startId + (i * 10) : startId + i;
-            let nextRow = Math.floor(nextId / 10);
-            
-            // Kolizja z ramką
-            if(nextId > 99 || (!isVertical && nextRow !== row)) {
-                return; // Nie mieści się
-            }
-            
-            // Kolizja z innym statkiem (ignorujemy statek który właśnie przenosimy)
-            const isOccupied = playerShipsCoords.some(s => s.id !== draggedShip.id && s.coords.includes(nextId));
-            if(isOccupied) return;
-
-            currentCoords.push(nextId);
+    function rotateShip(ship) {
+        if(gameActive) return;
+        const isVert = ship.dataset.vert === "true";
+        const len = parseInt(ship.dataset.len);
+        
+        ship.dataset.vert = !isVert;
+        ship.classList.toggle('vertical');
+        
+        if (!isVert) { // Zmieniamy na pion
+            ship.style.width = `40px`;
+            ship.style.height = `${len * 40}px`;
+        } else { // Zmieniamy na poziom
+            ship.style.width = `${len * 40}px`;
+            ship.style.height = `40px`;
         }
 
-        // Aktualizacja danych pozycji
-        playerShipsCoords = playerShipsCoords.filter(s => s.id !== draggedShip.id); // usuń stare kordy
-        playerShipsCoords.push({ id: draggedShip.id, coords: currentCoords });
-
-        // Fizyczne przeniesienie DOM (absolute na planszy)
-        draggedShip.style.position = "absolute";
-        draggedShip.style.left = `${(startId % 10) * 40}px`;
-        draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
-        playerBoard.appendChild(draggedShip);
-
-        checkAllShipsPlaced();
-    });
-
-    // Powrót statku do stoczni
-    shipyard.addEventListener('dragover', e => e.preventDefault());
-    shipyard.addEventListener('drop', e => {
-        if(draggedShip) {
-            draggedShip.style.position = "static";
-            shipyard.appendChild(draggedShip);
-            playerShipsCoords = playerShipsCoords.filter(s => s.id !== draggedShip.id);
-            checkAllShipsPlaced();
-        }
-    });
-
-    function rotateShip(e, shipDiv) {
-        if(gameActive) return; // Zablokuj obrót w trakcie gry
-        const isVert = shipDiv.dataset.vertical === "true";
-        shipDiv.dataset.vertical = !isVert;
-        shipDiv.classList.toggle('vertical');
-
-        // Jeśli statek jest na planszy i po obrocie wychodzi za mapę - wróć do stoczni
-        if(shipDiv.parentNode === playerBoard) {
-            const startId = playerShipsCoords.find(s => s.id === shipDiv.id).coords[0];
-            const length = parseInt(shipDiv.dataset.length);
-            const row = Math.floor(startId / 10);
-            const verticalNow = shipDiv.dataset.vertical === "true";
-            let fits = true;
-
-            for(let i=0; i<length; i++) {
-                let next = verticalNow ? startId + (i*10) : startId + i;
-                if(next > 99 || (!verticalNow && Math.floor(next/10) !== row)) fits = false;
-            }
-
-            if(!fits) {
-                alert("Obrót niemożliwy - brak miejsca! Statek wraca do stoczni.");
-                shipDiv.style.position = "static";
-                shipyard.appendChild(shipDiv);
-                playerShipsCoords = playerShipsCoords.filter(s => s.id !== shipDiv.id);
+        // Jeśli statek był na planszy, sprawdź czy po obrocie nie wystaje
+        if(ship.parentNode === playerBoard) {
+            const startId = parseInt(playerShipsCoords.find(x => x.id === ship.id).coords[0]);
+            if(!canPlace(startId, len, !isVert, ship.id)) {
+                ship.style.position = "static";
+                ship.style.width = !isVert ? `${len * 40}px` : `40px`; // Cofnij wizualnie
+                ship.style.height = !isVert ? `40px` : `${len * 40}px`;
+                ship.dataset.vert = isVert;
+                ship.classList.toggle('vertical');
+                shipyard.appendChild(ship);
+                playerShipsCoords = playerShipsCoords.filter(x => x.id !== ship.id);
             } else {
-                // Aktualizuj kordy po obrocie
-                let newCoords = [];
-                for(let i=0; i<length; i++) newCoords.push(verticalNow ? startId + (i*10) : startId + i);
-                playerShipsCoords.find(s => s.id === shipDiv.id).coords = newCoords;
+                updateCoords(ship, startId);
             }
         }
-        checkAllShipsPlaced();
+        checkReady();
     }
 
-    function checkAllShipsPlaced() {
-        if(playerShipsCoords.length === shipsToPlace.length) {
-            startBattleBtn.classList.remove('hidden');
-        } else {
-            startBattleBtn.classList.add('hidden');
+    playerBoard.addEventListener('dragover', e => e.preventDefault());
+    playerBoard.addEventListener('drop', e => {
+        const startId = parseInt(e.target.dataset.id);
+        const len = parseInt(draggedShip.dataset.len);
+        const vert = draggedShip.dataset.vert === "true";
+
+        if(canPlace(startId, len, vert, draggedShip.id)) {
+            draggedShip.style.position = "absolute";
+            draggedShip.style.left = `${(startId % 10) * 40}px`;
+            draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
+            playerBoard.appendChild(draggedShip);
+            updateCoords(draggedShip, startId);
+            checkReady();
         }
+    });
+
+    function canPlace(id, len, vert, sId) {
+        const row = Math.floor(id / 10);
+        for(let i=0; i<len; i++) {
+            let curr = vert ? id + (i*10) : id + i;
+            if(curr > 99 || (!vert && Math.floor(curr/10) !== row)) return false;
+            if(playerShipsCoords.some(s => s.id !== sId && s.coords.includes(curr))) return false;
+        }
+        return true;
     }
 
-    // --- START BITWY ---
+    function updateCoords(ship, startId) {
+        const len = parseInt(ship.dataset.len);
+        const vert = ship.dataset.vert === "true";
+        let newC = [];
+        for(let i=0; i<len; i++) newC.push(vert ? startId + (i*10) : startId + i);
+        playerShipsCoords = playerShipsCoords.filter(x => x.id !== ship.id);
+        playerShipsCoords.push({id: ship.id, coords: newC});
+    }
+
+    function checkReady() {
+        if(playerShipsCoords.length === 6) startBattleBtn.classList.remove('hidden');
+        else startBattleBtn.classList.add('hidden');
+    }
+
     startBattleBtn.addEventListener('click', () => {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "BITWA! Atakuj planszę wroga!";
-        
-        // Wyłącz przeciąganie statków gracza
-        document.querySelectorAll('.ship-drag').forEach(s => s.draggable = false);
-        
-        setupComputerShips();
+        statusText.innerText = "TWOJA TURA! Celuj w wody wroga.";
+        setupCPU();
     });
 
-    function setupComputerShips() {
-        shipsToPlace.forEach(ship => {
-            let placed = false;
-            while(!placed) {
+    function setupCPU() {
+        shipsToPlace.forEach(s => {
+            let ok = false;
+            while(!ok) {
                 let start = Math.floor(Math.random() * 100);
-                let isVert = Math.random() > 0.5;
-                let currentCoords = [];
-                let row = Math.floor(start / 10);
-                let fits = true;
-
-                for(let i=0; i < ship.length; i++) {
-                    let next = isVert ? start + (i * 10) : start + i;
-                    if(next > 99 || (!isVert && Math.floor(next / 10) !== row)) fits = false;
-                    const isOccupied = computerShipsCoords.some(s => s.coords.includes(next));
-                    if(isOccupied) fits = false;
-                    if(fits) currentCoords.push(next);
+                let vert = Math.random() > 0.5;
+                let tempC = [];
+                let row = Math.floor(start/10);
+                let fit = true;
+                for(let i=0; i<s.len; i++) {
+                    let curr = vert ? start + (i*10) : start + i;
+                    if(curr > 99 || (!vert && Math.floor(curr/10) !== row) || computerShipsCoords.some(x => x.coords.includes(curr))) {
+                        fit = false; break;
+                    }
+                    tempC.push(curr);
                 }
-
-                if(fits) {
-                    computerShipsCoords.push({ id: `cpu-${ship.id}`, coords: currentCoords });
-                    placed = true;
+                if(fit) {
+                    computerShipsCoords.push({coords: tempC});
+                    ok = true;
                 }
             }
         });
     }
 
-    // --- LOGIKA STRZAŁÓW ---
-    function attackComputer(id, cellElement) {
-        if(!gameActive || cellElement.classList.contains('hit') || cellElement.classList.contains('miss')) return;
-
-        let hitShip = computerShipsCoords.find(s => s.coords.includes(id));
-
-        if(hitShip) {
-            cellElement.classList.add('hit');
-            statusText.innerText = "Trafienie! Strzelaj dalej!";
-            checkWin();
+    function playerShoot(id, cell) {
+        if(!gameActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        let hit = computerShipsCoords.find(s => s.coords.includes(id));
+        if(hit) {
+            cell.classList.add('hit');
+            if(document.querySelectorAll('.computer-grid .hit').length === 19) { alert("WYGRAŁEŚ!"); location.reload(); }
         } else {
-            cellElement.classList.add('miss');
-            statusText.innerText = "Pudło! Strzela wróg...";
-            gameActive = false; // blokada na czas tury AI
-            setTimeout(computerTurn, 800);
+            cell.classList.add('miss');
+            gameActive = false;
+            statusText.innerText = "WRÓG CELUJE...";
+            setTimeout(cpuShoot, 800);
         }
     }
 
-    function computerTurn() {
-        let rand;
-        let cCell;
-        do {
-            rand = Math.floor(Math.random() * 100);
-            cCell = playerBoard.children[rand];
-        } while(cCell.classList.contains('hit') || cCell.classList.contains('miss'));
+    // NAPRAWIONA LOGIKA WROGA - NIE ZAWIESZA SIĘ
+    function cpuShoot() {
+        if(availableCPUShots.length === 0) return;
+        
+        const randomIndex = Math.floor(Math.random() * availableCPUShots.length);
+        const shotId = availableCPUShots.splice(randomIndex, 1)[0];
+        const cell = playerBoard.children[shotId];
 
-        let hitShip = playerShipsCoords.find(s => s.coords.includes(rand));
-
-        if(hitShip) {
-            cCell.classList.add('hit');
-            statusText.innerText = "Oberwaliśmy! Wróg celuje ponownie...";
-            checkWin();
-            if(gameActive) setTimeout(computerTurn, 800);
+        let hit = playerShipsCoords.find(s => s.coords.includes(shotId));
+        if(hit) {
+            cell.classList.add('hit');
+            if(document.querySelectorAll('.player-grid .hit').length === 19) { alert("PRZEGRAŁEŚ!"); location.reload(); }
+            setTimeout(cpuShoot, 800);
         } else {
-            cCell.classList.add('miss');
-            statusText.innerText = "Wróg spudłował. Twój ruch Kapitanie!";
+            cell.classList.add('miss');
+            statusText.innerText = "TWOJA TURA!";
             gameActive = true;
-        }
-    }
-
-    function checkWin() {
-        const totalShipCells = shipsToPlace.reduce((sum, s) => sum + s.length, 0);
-        const playerHits = document.querySelectorAll('#computer-board .hit').length;
-        const cpuHits = document.querySelectorAll('#player-board .hit').length;
-
-        if(playerHits === totalShipCells) {
-            alert("WYGRANA! Zatopiliśmy wrogą flotę!");
-            location.reload();
-        } else if(cpuHits === totalShipCells) {
-            alert("PRZEGRANA! Nasze statki spoczywają na dnie...");
-            location.reload();
         }
     }
 });
