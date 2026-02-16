@@ -17,32 +17,34 @@ body {
 
 .hidden { display: none !important; }
 
-/* Styl menu ze zdjęcia */
+/* Ekran startowy ze zdjęcia */
 .overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.85);
     display: flex; justify-content: center; align-items: center;
     z-index: 1000;
 }
 
 .menu-box {
     background: var(--parchment);
-    padding: 40px;
+    padding: 50px;
     border: 2px solid #8b5a2b;
     text-align: center;
     box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
-.menu-box h1 { font-family: 'Pirata One'; font-size: 3.5rem; margin: 0; color: #4a3728; }
+.menu-box h1 { font-family: 'Pirata One'; font-size: 4rem; margin: 0; color: #4a3728; }
+.menu-box button { background: #6d5e54; color: white; border: none; padding: 10px 30px; font-size: 1.5rem; cursor: pointer; margin-top: 20px; font-family: 'Pirata One'; }
 
-/* Kontener gry */
+/* Kontener główny */
 .game-container {
     background: var(--parchment);
-    padding: 20px;
+    padding: 30px;
     border-radius: 5px;
+    max-width: 90%;
 }
 
-.battlefield { display: flex; gap: 40px; align-items: flex-start; }
+.battlefield { display: flex; gap: 50px; align-items: flex-start; }
 
 .grid {
     display: grid;
@@ -51,46 +53,43 @@ body {
     background: var(--ocean);
     border: 3px solid #333;
     position: relative;
-    width: 400px;
-    height: 400px;
 }
 
-.cell {
-    width: 40px; height: 40px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
+.cell { width: 40px; height: 40px; border: 1px solid rgba(255,255,255,0.1); position: relative; }
 
-/* POPRAWIONA STOCZNIA */
+/* --- POPRAWIONA STOCZNIA --- */
 .shipyard {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Odstępy między statkami */
+    gap: 20px; /* Wyraźne odstępy między statkami */
     padding: 10px;
-    background: rgba(0,0,0,0.05);
     min-width: 220px;
 }
 
 .ship-drag {
     background: var(--wood);
-    border: 2px solid #2b1d19;
+    border: 1px solid #2b1d19;
     cursor: grab;
-    /* Resetujemy pozycję dla stoczni */
-    position: relative; 
-    display: block;
+    position: relative; /* Statki w stoczni nie są absolute */
+    display: flex; /* Żeby kratki wewnątrz się układały */
 }
 
-/* Efekty trafień na wierzchu */
-.hit::after, .sunk::after, .miss::after {
+/* Wizualne rozdzielenie kratek w statku (jak na zdjęciu) */
+.ship-drag::before {
     content: '';
-    position: absolute; inset: 0;
-    z-index: 100;
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+/* Trafienia widoczne NAD statkami */
+.hit::after, .sunk::after, .miss::after {
+    content: ''; position: absolute; inset: 0; z-index: 100;
     display: flex; justify-content: center; align-items: center;
 }
-.hit::after { background: rgba(255,0,0,0.5); content: '💥'; }
-.sunk::after { background: rgba(0,0,0,0.8); content: '💀'; }
-.miss::after { content: '•'; color: white; font-size: 20px; }
+.hit::after { background: rgba(255,0,0,0.6); content: '💥'; }
+.sunk::after { background: rgba(0,0,0,0.85); content: '💀'; }
+.miss::after { content: '•'; color: white; font-size: 25px; }
 
-#start-battle, #play-btn {
-    background: #6d5e54; color: white; border: none;
-    padding: 10px 20px; font-family: 'Pirata One'; font-size: 1.2rem; cursor: pointer;
-}
+#start-battle { background: #8b5a2b; color: white; border: none; padding: 10px 20px; font-family: 'Pirata One'; font-size: 1.3rem; cursor: pointer; }
