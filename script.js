@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleShipClick(ship) {
         if(gameActive) return;
-        if(ship.parentElement.classList.contains('grid')) {
+        if(ship.parentElement.classList.contains('grid') || ship.parentElement === playerBoard) {
             const shipIdx = ship.id.split('-')[1];
             const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
             ship.style.position = "relative";
@@ -182,13 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 playSound(sndHit);
             }
-            checkGameOver();
+            checkEndConditions();
         } else {
             cell.classList.add('miss');
             playSound(sndMiss);
             isPlayerTurn = false;
             updateStatus();
-            setTimeout(cpuAttack, 1000);
+            setTimeout(cpuAttack, 800);
         }
     }
 
@@ -220,16 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // --- KLUCZOWA POPRAWKA ---
-            // Natychmiastowe sprawdzenie czy gracz przegrał
-            const playerLost = playerShips.every(s => s.hits === s.len);
-            if (playerLost) {
-                endTheGame(false);
-                return; // Przerwij dalsze strzały AI
-            }
-
-            // Jeśli gra trwa, AI strzela ponownie po krótkiej przerwie
-            setTimeout(cpuAttack, 800);
+            // Sprawdź natychmiast po trafieniu
+            if (checkEndConditions()) return;
+            setTimeout(cpuAttack, 700);
         } else {
             cell.classList.add('miss');
             playSound(sndMiss);
@@ -238,27 +231,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function checkGameOver() {
-        const computerLost = computerShips.every(s => s.hits === s.len);
-        const playerLost = playerShips.every(s => s.hits === s.len);
+    // --- NOWA, NIEZAWODNA FUNKCJA SPRAWDZANIA KOŃCA ---
+    function checkEndConditions() {
+        const playerLost = playerShips.every(ship => 
+            ship.coords.every(coord => playerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
+        );
+        const computerLost = computerShips.every(ship => 
+            ship.coords.every(coord => computerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
+        );
 
-        if (computerLost) {
-            endTheGame(true);
-        } else if (playerLost) {
-            endTheGame(false);
+        if (playerLost) {
+            announceResult(false);
+            return true;
         }
+        if (computerLost) {
+            announceResult(true);
+            return true;
+        }
+        return false;
     }
 
-    function endTheGame(isWin) {
-        if (!gameActive) return;
+    function announceResult(isWin) {
         gameActive = false;
-        
         statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
         
+        // Blokada klikania na planszę
+        computerBoard.style.pointerEvents = "none";
+
         setTimeout(() => {
-            alert(isWin ? "Gratulacje Kapitanie! Wróg pokonany!" : "Twoja flota zatonęła... Przegrana.");
+            alert(isWin ? "BRAWO! Zniszczyłeś flotę wroga!" : "TWOJA FLOTA ZATONĘŁA. Przegrałeś bitwę.");
             location.reload();
-        }, 600);
+        }, 500);
     }
 });
