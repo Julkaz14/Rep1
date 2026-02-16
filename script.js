@@ -15,44 +15,55 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    // ==========================================
-    // 1. WYMUSZENIE MUZYKI OD RAZU PO WEJŚCIU
-    // ==========================================
-    if (music) {
-        music.volume = 0.2; // Ustawienie głośności
-        
-        // Próbujemy włączyć muzykę od razu
-        let playPromise = music.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.catch(() => {
-                console.log("Przeglądarka zablokowała autoodtwarzanie. Czekam na pierwsze kliknięcie...");
-                
-                // Zabezpieczenie: Jeśli zablokowano, włącz muzykę przy PIERWSZYM kliknięciu GDZIEKOLWIEK
-                const forcePlayOnFirstClick = () => {
-                    music.play();
-                    document.removeEventListener('click', forcePlayOnFirstClick);
-                };
-                document.addEventListener('click', forcePlayOnFirstClick);
-            });
-        }
+    // --- SYSTEM DŹWIĘKÓW (SYNTEZATOR) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playExplosionSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
     }
 
-    // Kliknięcie "Rozpocznij Grę" - na wypadek gdyby muzyka jeszcze nie grała
+    function playSunkSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1);
+    }
+
+    // --- MUZYKA I START ---
+    const startMusic = () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        music.volume = 0.1;
+        music.play().catch(e => console.log("Czekam na kliknięcie..."));
+    };
+
+    // Muzyka włączy się przy jakimkolwiek kliknięciu w stronę
+    window.addEventListener('click', startMusic, { once: true });
+
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        
-        if (music && music.paused) {
-            music.play();
-        }
-        
+        startMusic();
         initGame();
     });
 
-    // ==========================================
-    // INICJALIZACJA PLANSZ
-    // ==========================================
+    // --- LOGIKA GRY ---
     function initGame() {
         playerBoard.innerHTML = '';
         computerBoard.innerHTML = '';
@@ -61,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
             pCell.classList.add('cell');
             pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
-
             const cCell = document.createElement('div');
             cCell.classList.add('cell');
             cCell.dataset.id = i;
@@ -71,9 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         genShipyard();
     }
 
-    // ==========================================
-    // GENEROWANIE STATKÓW
-    // ==========================================
     function genShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
@@ -85,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
             ship.draggable = true;
-            
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', () => rotateShip(ship));
             shipyard.appendChild(ship);
@@ -96,11 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameActive) return;
         const isVert = ship.dataset.vert === "true";
         const len = parseInt(ship.dataset.len);
-        
         ship.dataset.vert = !isVert;
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
-
         if (ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "static";
@@ -109,41 +113,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // PRZECIĄGANIE STATKÓW I POZYCJONOWANIE
-    // ==========================================
     playerBoard.addEventListener('dragover', e => e.preventDefault());
-
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
-        const targetCell = e.target;
-        const startId = parseInt(targetCell.dataset.id);
-        
+        const startId = parseInt(e.target.dataset.id);
         if (isNaN(startId)) return;
-
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
-
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
-            for (let i = 0; i < len; i++) {
-                coords.push(vert ? startId + i * 10 : startId + i);
-            }
-
+            for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-
-            // Idealne pozycjonowanie wewnątrz planszy (zapobiega lewitowaniu)
             draggedShip.style.position = "absolute";
-            draggedShip.style.margin = "0";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
-
             playerBoard.appendChild(draggedShip);
-
-            if (playerShips.length === shipTypes.length) {
-                startBattleBtn.classList.remove('hidden');
-            }
+            if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         }
     });
 
@@ -156,15 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // ==========================================
-    // BITWA I STRZELANIE
-    // ==========================================
     startBattleBtn.addEventListener('click', () => {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA! CELUJ W MAPĘ WROGA";
+        statusText.innerText = "TWOJA TURA!";
         setupCPU();
     });
 
@@ -186,21 +169,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
+            playExplosionSound(); // Dźwięk trafienia
             ship.hits++;
-            statusText.innerText = "TRAFIONY!";
             if (ship.hits === ship.len) {
+                playSunkSound(); // Dźwięk zatopienia
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "ZATOPIŁEŚ OKRĘT WROGA!";
             }
             checkGameOver();
         } else {
             cell.classList.add('miss');
             isPlayerTurn = false;
-            statusText.innerText = "PUDŁO! WRÓG PRZYGOTOWUJE SALWĘ...";
             setTimeout(cpuAttack, 800);
         }
     }
@@ -211,11 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const shotId = availableCPUShots.splice(index, 1)[0];
         const cell = playerBoard.children[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
-
         if (ship) {
             cell.classList.add('hit');
+            playExplosionSound();
             ship.hits++;
             if (ship.hits === ship.len) {
+                playSunkSound();
                 ship.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
             }
             checkGameOver();
@@ -223,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
-            statusText.innerText = "TWOJA TURA, KAPITANIE!";
         }
     }
 
@@ -232,10 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => {
-                alert(pWin ? "ZWYCIĘSTWO! Morze jest wolne!" : "PORAŻKA! Twoja flota spoczęła na dnie...");
-                location.reload();
-            }, 500);
+            setTimeout(() => { alert(pWin ? "WYGRANA!" : "PRZEGRANA!"); location.reload(); }, 500);
         }
     }
 });
