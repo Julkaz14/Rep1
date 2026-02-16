@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Pobieranie elementów z HTML
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
@@ -16,23 +15,44 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    // 1. OBSŁUGA MENU I MUZYKI
+    // ==========================================
+    // 1. WYMUSZENIE MUZYKI OD RAZU PO WEJŚCIU
+    // ==========================================
+    if (music) {
+        music.volume = 0.2; // Ustawienie głośności
+        
+        // Próbujemy włączyć muzykę od razu
+        let playPromise = music.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.catch(() => {
+                console.log("Przeglądarka zablokowała autoodtwarzanie. Czekam na pierwsze kliknięcie...");
+                
+                // Zabezpieczenie: Jeśli zablokowano, włącz muzykę przy PIERWSZYM kliknięciu GDZIEKOLWIEK
+                const forcePlayOnFirstClick = () => {
+                    music.play();
+                    document.removeEventListener('click', forcePlayOnFirstClick);
+                };
+                document.addEventListener('click', forcePlayOnFirstClick);
+            });
+        }
+    }
+
+    // Kliknięcie "Rozpocznij Grę" - na wypadek gdyby muzyka jeszcze nie grała
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         
-        // Próba uruchomienia muzyki
-        if (music) {
-            music.volume = 0.2; // Głośność 20%
-            music.play().catch(error => {
-                console.log("Muzyka potrzebuje dodatkowego kliknięcia: ", error);
-            });
+        if (music && music.paused) {
+            music.play();
         }
         
         initGame();
     });
 
-    // 2. INICJALIZACJA PLANSZ
+    // ==========================================
+    // INICJALIZACJA PLANSZ
+    // ==========================================
     function initGame() {
         playerBoard.innerHTML = '';
         computerBoard.innerHTML = '';
@@ -51,7 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
         genShipyard();
     }
 
-    // 3. GENEROWANIE STATKÓW W STOCZNI
+    // ==========================================
+    // GENEROWANIE STATKÓW
+    // ==========================================
     function genShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
@@ -70,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4. OBRACANIE STATKÓW
     function rotateShip(ship) {
         if (gameActive) return;
         const isVert = ship.dataset.vert === "true";
@@ -80,7 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
 
-        // Jeśli statek był na planszy, wróć go do stoczni przy obrocie
         if (ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "static";
@@ -89,7 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. PRZECIĄGANIE I UPUSZCZANIE (DRAG & DROP)
+    // ==========================================
+    // PRZECIĄGANIE STATKÓW I POZYCJONOWANIE
+    // ==========================================
     playerBoard.addEventListener('dragover', e => e.preventDefault());
 
     playerBoard.addEventListener('drop', e => {
@@ -111,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
-            // POZYCJONOWANIE - Naprawa "lewitowania"
+            // Idealne pozycjonowanie wewnątrz planszy (zapobiega lewitowaniu)
             draggedShip.style.position = "absolute";
             draggedShip.style.margin = "0";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
@@ -134,7 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // 6. ROZPOCZĘCIE BITWY
+    // ==========================================
+    // BITWA I STRZELANIE
+    // ==========================================
     startBattleBtn.addEventListener('click', () => {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
@@ -160,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 7. MECHANIKA ATAKU
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
 
