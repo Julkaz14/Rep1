@@ -81,19 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for(let i=0; i<len; i++) coords.push(vert ? startId + i*10 : startId + i);
-            
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
-            // POZYCJONOWANIE - OBLICZENIA W KRATKACH
             draggedShip.style.position = "absolute";
-            const col = startId % 10;
-            const row = Math.floor(startId / 10);
-            
-            // Każda kratka ma dokładnie 40px
-            draggedShip.style.left = (col * 40) + "px";
-            draggedShip.style.top = (row * 40) + "px";
-
+            draggedShip.style.left = `${(startId % 10) * 40}px`;
+            draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
             playerBoard.appendChild(draggedShip);
 
             if (playerShips.length === 6) startBattleBtn.classList.remove('hidden');
@@ -103,8 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function canPlace(id, len, vert, sId, ships) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99) return false;
-            if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
+            if (curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
             if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
@@ -143,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.hits++;
             if (ship.hits === ship.len) {
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "ZATOPIŁEŚ STATEK!";
+                statusText.innerText = "ZATOPIONY!";
             }
             checkWin();
         } else {
@@ -181,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            statusText.innerText = pWin ? "ZWYCIĘSTWO!" : "PORAŻKA!";
             setTimeout(() => { alert(pWin ? "Wygrałeś!" : "Przegrałeś!"); location.reload(); }, 500);
         }
     }
