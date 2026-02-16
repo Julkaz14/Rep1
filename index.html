@@ -8,81 +8,168 @@
 </head>
 <body>
     <audio id="bg-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3"></audio>
+    <audio id="sfx-hit" src="https://actions.google.com/sounds/v1/explosions/explosion_far.ogg"></audio>
+    <audio id="sfx-miss" src="https://actions.google.com/sounds/v1/water/small_splash.ogg"></audio>
 
     <div id="game-window">
         <section id="menu-screen" class="screen active">
-            <h1 class="game-title">PIRATE & SANDALS</h1>
+            <div class="logo-area">
+                <h1 class="game-title">PIRATE & SANDALS</h1>
+                <p class="subtitle">PROJEKT ZALICZENIOWY: GRA FABULARNA</p>
+            </div>
             <div class="menu-buttons">
                 <button onclick="showScreen('creator-screen')">NOWA GRA</button>
                 <button id="load-btn" onclick="loadGame()">WCZYTAJ GRĘ</button>
                 <button onclick="showScreen('settings-screen')">USTAWIENIA</button>
             </div>
+            <div class="version-info">Wersja 1.0 - Julia Angelika Kaźmierczak</div>
         </section>
 
         <section id="creator-screen" class="screen">
-            <h2>STWÓRZ KAPITANA</h2>
-            <div class="creator-layout">
-                <div class="avatar-preview" id="avatar-img">
-                    <div id="hair-part"></div>
-                    <div id="body-part"></div>
-                    <div id="clothes-part"></div>
+            <h2 class="section-title">STWÓRZ SWOJEGO KAPITANA</h2>
+            <div class="creator-container">
+                <div class="avatar-sidebar">
+                    <div class="avatar-preview" id="avatar-img">
+                        <div id="hair-part"></div>
+                        <div id="head-part"></div>
+                        <div id="body-part"></div>
+                        <div id="clothes-part"></div>
+                    </div>
                 </div>
-                <div class="customizer">
-                    <input type="text" id="player-name-input" placeholder="Imię Twojego Kapitan...">
-                    <label>Płeć: <select id="gender-sel"><option>Mężczyzna</option><option>Kobieta</option></select></label>
-                    <label>Włosy: <input type="color" id="hair-color" value="#4b2c20"></label>
-                    <label>Ubiór: <input type="color" id="cloth-color" value="#7b1113"></label>
-                    <button class="gold-btn" onclick="startStory()">ROZPOCZNIJ PRZYGODĘ</button>
+                <div class="customization-form">
+                    <div class="form-group">
+                        <label>IMIĘ KAPITANA:</label>
+                        <input type="text" id="player-name-input" maxlength="15" placeholder="Wpisz imię...">
+                    </div>
+                    <div class="form-group">
+                        <label>PŁEĆ:</label>
+                        <div class="radio-group">
+                            <button class="choice-btn active" onclick="setGender('M')">MĘŻCZYZNA</button>
+                            <button class="choice-btn" onclick="setGender('K')">KOBIETA</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>KOLOR WŁOSÓW:</label>
+                        <input type="color" id="hair-color-picker" value="#4b2c20" onchange="updateVisuals()">
+                    </div>
+                    <div class="form-group">
+                        <label>KOLOR UBRANIA:</label>
+                        <input type="color" id="cloth-color-picker" value="#7b1113" onchange="updateVisuals()">
+                    </div>
+                    <button class="gold-action-btn" onclick="startStory()">ZAAKCEPTUJ I ROZPOCZNIJ</button>
                 </div>
             </div>
         </section>
 
         <section id="prologue-screen" class="screen">
-            <div class="parchment">
-                <h2>PROLOG: KATASTROFA</h2>
-                <p id="prologue-text"></p>
-                <button class="gold-btn" onclick="showScreen('stats-screen')">DALEJ...</button>
+            <div class="parchment-container">
+                <div class="parchment">
+                    <h2 id="prologue-title">DZIEŃ KATASTROFY</h2>
+                    <div id="prologue-text" class="typewriter-text"></div>
+                    <button class="gold-action-btn" onclick="showScreen('stats-screen')">ROZUMIEM, CZAS WALCZYĆ O SWOJE</button>
+                </div>
             </div>
         </section>
 
         <section id="stats-screen" class="screen">
-            <div class="stats-header">
-                <span id="stat-name"></span> | LVL: <span id="stat-lvl">1</span> | ZŁOTO: <span id="stat-gold">0</span>
+            <div class="stats-top-bar">
+                <div class="player-summary">
+                    <span id="stat-name-display">KAPITAN</span> 
+                    <span class="badge">LVL <span id="stat-lvl">1</span></span>
+                </div>
+                <div class="currency-display">💰 ZŁOTO: <span id="stat-gold">0</span></div>
             </div>
-            <h3>ROZWIŃ UMIEJĘTNOŚCI</h3>
-            <p>Punkty do wydania: <span id="skill-pts">5</span></p>
-            <div class="skills-list">
-                <div class="skill-row">👁️ PERCEPCJA (Szansa na odkrycie pól): <button onclick="addSkill('per')">+</button> <span id="val-per">0</span></div>
-                <div class="skill-row">🍀 SZCZĘŚCIE (Komputer częściej pudłuje): <button onclick="addSkill('luc')">+</button> <span id="val-luc">0</span></div>
-                <div class="skill-row">🛠️ NAPRAWA (Zmniejsza uszkodzenia): <button onclick="addSkill('rep')">+</button> <span id="val-rep">0</span></div>
+
+            <div class="skills-box">
+                <h3>ROZDAJ PUNKTY UMIEJĘTNOŚCI</h3>
+                <p>DOSTĘPNE PUNKTY: <span id="skill-pts">5</span></p>
+                
+                <div class="skill-row">
+                    <div class="skill-info">
+                        <strong>👁️ PERCEPCJA</strong>
+                        <small>Szansa na odkrycie pól dookoła trafienia.</small>
+                    </div>
+                    <div class="skill-controls">
+                        <button onclick="addSkill('per')">+</button>
+                        <span id="val-per">0</span>
+                    </div>
+                </div>
+
+                <div class="skill-row">
+                    <div class="skill-info">
+                        <strong>🍀 SZCZĘŚCIE</strong>
+                        <small>Zwiększa szansę, że komputer spudłuje.</small>
+                    </div>
+                    <div class="skill-controls">
+                        <button onclick="addSkill('luc')">+</button>
+                        <span id="val-luc">0</span>
+                    </div>
+                </div>
+
+                <div class="skill-row">
+                    <div class="skill-info">
+                        <strong>🛠️ NAPRAWA</strong>
+                        <small>Zmniejsza obrażenia otrzymywane od wroga.</small>
+                    </div>
+                    <div class="skill-controls">
+                        <button onclick="addSkill('rep')">+</button>
+                        <span id="val-rep">0</span>
+                    </div>
+                </div>
             </div>
-            <button id="to-battle-btn" class="gold-btn" onclick="showScreen('battle-setup')">WYRUSZ NA MORZE</button>
+            
+            <div class="action-footer">
+                <button class="gold-action-btn" onclick="showScreen('setup-screen')">WYRUSZ NA BITWĘ (BITWA O XP)</button>
+                <button class="save-btn" onclick="saveGame()">ZAPISZ GRĘ</button>
+            </div>
         </section>
 
-        <section id="battle-setup" class="screen">
-            <h3>ROZMIEŚĆ STATKI</h3>
-            <div id="setup-area">
-                <div id="player-board-setup" class="board"></div>
-                <div class="ship-controls">
-                    <button id="rotate-btn">OBRÓĆ</button>
-                    <div id="ship-dock"></div>
-                    <button id="start-fight-btn" style="display:none;" onclick="startBattle()">WALCZ!</button>
+        <section id="setup-screen" class="screen">
+            <h2>PRZYGOTUJ SWOJĄ FLOTĘ</h2>
+            <p id="setup-msg">Wybierz statek z doku i umieść go na planszy.</p>
+            <div class="setup-layout">
+                <div id="player-setup-board" class="board"></div>
+                <div class="dock-area">
+                    <button id="rotate-btn" class="btn-side">OBRÓĆ (POZIOM)</button>
+                    <div id="ship-dock">
+                        </div>
+                    <button id="start-battle-btn" class="gold-action-btn" style="display:none;" onclick="initiateBattle()">START BITWY!</button>
                 </div>
             </div>
         </section>
 
         <section id="battle-screen" class="screen">
-            <div class="game-container">
-                <div class="board-section"><h3>TWOJA FLOTA</h3><div id="p-board" class="board"></div></div>
-                <div class="board-section"><h3>WRÓG</h3><div id="c-board" class="board"></div></div>
+            <div class="battle-header">
+                <div class="battle-stats">TWOJE HP: <span id="p-hp">100%</span></div>
+                <h2 id="turn-display">TWOJA KOLEJ</h2>
+                <div class="battle-stats">WRÓG HP: <span id="e-hp">100%</span></div>
             </div>
-            <p id="battle-msg"></p>
+            <div class="game-container">
+                <div class="board-section">
+                    <h3>TWOJA FLOTA</h3>
+                    <div id="p-battle-board" class="board"></div>
+                </div>
+                <div class="board-section">
+                    <h3>RADAR WROGA</h3>
+                    <div id="e-battle-board" class="board"></div>
+                </div>
+            </div>
+            <p id="battle-log">Zlokalizuj statki piratów!</p>
         </section>
 
         <section id="settings-screen" class="screen">
-            <h2>USTAWIENIA</h2>
-            <button onclick="toggleMusic()">DŹWIĘK: ON/OFF</button>
-            <button onclick="showScreen('menu-screen')">POWRÓT</button>
+            <h2>USTAWIENIA GRY</h2>
+            <div class="settings-box">
+                <div class="setting-item">
+                    <span>MUZYKA I DŹWIĘKI</span>
+                    <button id="audio-toggle" onclick="toggleAudio()">WŁĄCZONE</button>
+                </div>
+                <div class="setting-item">
+                    <span>JĘZYK</span>
+                    <button>POLSKI</button>
+                </div>
+            </div>
+            <button class="gold-action-btn" onclick="showScreen('menu-screen')">POWRÓT DO MENU</button>
         </section>
     </div>
 
