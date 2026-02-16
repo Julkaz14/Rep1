@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pirate & Sandals: Stormy Waters</title>
+    <title>Captain of the Sea - RPG Battleship</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,163 +13,171 @@
 
     <div id="game-window">
         <section id="menu-screen" class="screen active">
-            <div class="logo-area">
-                <h1 class="game-title">PIRATE & SANDALS</h1>
-                <p class="subtitle">PROJEKT ZALICZENIOWY: GRA FABULARNA</p>
+            <div class="logo-container">
+                <h1 class="main-title">CAPTAIN OF THE SEA</h1>
+                <p class="game-subtitle">⚓ PRZYGODA, SŁAWA I STAL ⚓</p>
             </div>
-            <div class="menu-buttons">
-                <button onclick="showScreen('creator-screen')">NOWA GRA</button>
-                <button id="load-btn" onclick="loadGame()">WCZYTAJ GRĘ</button>
-                <button onclick="showScreen('settings-screen')">USTAWIENIA</button>
+            
+            <div class="main-menu-nav">
+                <button class="menu-btn" onclick="goToScreen('creator-screen')">NOWA GRA</button>
+                <button class="menu-btn" onclick="loadGame()">WCZYTAJ GRĘ</button>
+                <button class="menu-btn" onclick="goToScreen('settings-screen')">USTAWIENIA</button>
             </div>
-            <div class="version-info">Wersja 1.0 - Julia Angelika Kaźmierczak</div>
+            <div class="footer-note">Wersja 1.1 - RPG Engine Ready</div>
         </section>
 
         <section id="creator-screen" class="screen">
-            <h2 class="section-title">STWÓRZ SWOJEGO KAPITANA</h2>
-            <div class="creator-container">
-                <div class="avatar-sidebar">
-                    <div class="avatar-preview" id="avatar-img">
-                        <div id="hair-part"></div>
-                        <div id="head-part"></div>
-                        <div id="body-part"></div>
-                        <div id="clothes-part"></div>
+            <h2 class="section-title">STWÓRZ SWOJĄ LEGENDĘ</h2>
+            <div class="creator-flex">
+                <div class="avatar-box">
+                    <div id="visual-preview">
+                        <div id="hair-layer"></div>
+                        <div id="head-layer"></div>
+                        <div id="clothes-layer"></div>
                     </div>
                 </div>
-                <div class="customization-form">
-                    <div class="form-group">
+                
+                <div class="creator-form">
+                    <div class="input-block">
                         <label>IMIĘ KAPITANA:</label>
-                        <input type="text" id="player-name-input" maxlength="15" placeholder="Wpisz imię...">
+                        <input type="text" id="p-name" placeholder="Wpisz imię..." maxlength="12">
                     </div>
-                    <div class="form-group">
+                    
+                    <div class="input-block">
                         <label>PŁEĆ:</label>
-                        <div class="radio-group">
-                            <button class="choice-btn active" onclick="setGender('M')">MĘŻCZYZNA</button>
-                            <button class="choice-btn" onclick="setGender('K')">KOBIETA</button>
-                        </div>
+                        <select id="p-gender">
+                            <option value="M">Mężczyzna</option>
+                            <option value="K">Kobieta</option>
+                        </select>
                     </div>
-                    <div class="form-group">
+
+                    <div class="input-block">
                         <label>KOLOR WŁOSÓW:</label>
-                        <input type="color" id="hair-color-picker" value="#4b2c20" onchange="updateVisuals()">
+                        <input type="color" id="p-hair-color" value="#4b2c20" oninput="liveUpdateVisuals()">
                     </div>
-                    <div class="form-group">
-                        <label>KOLOR UBRANIA:</label>
-                        <input type="color" id="cloth-color-picker" value="#7b1113" onchange="updateVisuals()">
+
+                    <div class="input-block">
+                        <label>UBIÓR:</label>
+                        <input type="color" id="p-cloth-color" value="#7b1113" oninput="liveUpdateVisuals()">
                     </div>
-                    <button class="gold-action-btn" onclick="startStory()">ZAAKCEPTUJ I ROZPOCZNIJ</button>
+
+                    <button class="action-btn-gold" onclick="startAdventure()">ROZPOCZNIJ PROLOG</button>
+                    <button class="action-btn-back" onclick="goToScreen('menu-screen')">POWRÓT</button>
                 </div>
             </div>
         </section>
 
         <section id="prologue-screen" class="screen">
-            <div class="parchment-container">
-                <div class="parchment">
-                    <h2 id="prologue-title">DZIEŃ KATASTROFY</h2>
-                    <div id="prologue-text" class="typewriter-text"></div>
-                    <button class="gold-action-btn" onclick="showScreen('stats-screen')">ROZUMIEM, CZAS WALCZYĆ O SWOJE</button>
+            <div class="parchment-scroll">
+                <div class="scroll-content">
+                    <h3>ROZDZIAŁ 1: KATASTROFA</h3>
+                    <div id="story-text" class="typing-effect"></div>
                 </div>
+                <button class="action-btn-gold" onclick="goToScreen('stats-screen')">KONTYNUUJ</button>
             </div>
         </section>
 
         <section id="stats-screen" class="screen">
-            <div class="stats-top-bar">
-                <div class="player-summary">
-                    <span id="stat-name-display">KAPITAN</span> 
-                    <span class="badge">LVL <span id="stat-lvl">1</span></span>
+            <div class="stats-dashboard">
+                <div class="player-header">
+                    <h2 id="disp-name">KAPITAN</h2>
+                    <div class="lvl-tag">POZIOM <span id="disp-lvl">1</span></div>
                 </div>
-                <div class="currency-display">💰 ZŁOTO: <span id="stat-gold">0</span></div>
-            </div>
-
-            <div class="skills-box">
-                <h3>ROZDAJ PUNKTY UMIEJĘTNOŚCI</h3>
-                <p>DOSTĘPNE PUNKTY: <span id="skill-pts">5</span></p>
                 
-                <div class="skill-row">
-                    <div class="skill-info">
-                        <strong>👁️ PERCEPCJA</strong>
-                        <small>Szansa na odkrycie pól dookoła trafienia.</small>
+                <div class="stats-main">
+                    <div class="resources">
+                        <div class="res-item">💰 ZŁOTO: <span id="disp-gold">0</span></div>
+                        <div class="res-item">✨ PUNKTY UMIEJĘTNOŚCI: <span id="disp-pts">5</span></div>
                     </div>
-                    <div class="skill-controls">
-                        <button onclick="addSkill('per')">+</button>
-                        <span id="val-per">0</span>
+
+                    <div class="skills-tree">
+                        <div class="skill-card">
+                            <div class="skill-info">
+                                <strong>👁️ PERCEPCJA</strong>
+                                <span>Widzisz więcej pól po trafieniu.</span>
+                            </div>
+                            <div class="skill-action">
+                                <button onclick="upgradeSkill('per')">+</button>
+                                <span id="v-per">0</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-info">
+                                <strong>🍀 SZCZĘŚCIE</strong>
+                                <span>Wróg częściej pudłuje.</span>
+                            </div>
+                            <div class="skill-action">
+                                <button onclick="upgradeSkill('luc')">+</button>
+                                <span id="v-luc">0</span>
+                            </div>
+                        </div>
+
+                        <div class="skill-card">
+                            <div class="skill-info">
+                                <strong>🛠️ NAPRAWA</strong>
+                                <span>Zmniejsza obrażenia statków.</span>
+                            </div>
+                            <div class="skill-action">
+                                <button onclick="upgradeSkill('rep')">+</button>
+                                <span id="v-rep">0</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="skill-row">
-                    <div class="skill-info">
-                        <strong>🍀 SZCZĘŚCIE</strong>
-                        <small>Zwiększa szansę, że komputer spudłuje.</small>
-                    </div>
-                    <div class="skill-controls">
-                        <button onclick="addSkill('luc')">+</button>
-                        <span id="val-luc">0</span>
-                    </div>
+                <div class="footer-actions">
+                    <button class="action-btn-gold" onclick="prepareBattle()">WYRUSZ NA MORZE</button>
+                    <button class="save-btn" onclick="saveGame()">ZAPISZ STAN GRY</button>
                 </div>
-
-                <div class="skill-row">
-                    <div class="skill-info">
-                        <strong>🛠️ NAPRAWA</strong>
-                        <small>Zmniejsza obrażenia otrzymywane od wroga.</small>
-                    </div>
-                    <div class="skill-controls">
-                        <button onclick="addSkill('rep')">+</button>
-                        <span id="val-rep">0</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="action-footer">
-                <button class="gold-action-btn" onclick="showScreen('setup-screen')">WYRUSZ NA BITWĘ (BITWA O XP)</button>
-                <button class="save-btn" onclick="saveGame()">ZAPISZ GRĘ</button>
             </div>
         </section>
 
         <section id="setup-screen" class="screen">
-            <h2>PRZYGOTUJ SWOJĄ FLOTĘ</h2>
-            <p id="setup-msg">Wybierz statek z doku i umieść go na planszy.</p>
-            <div class="setup-layout">
-                <div id="player-setup-board" class="board"></div>
-                <div class="dock-area">
-                    <button id="rotate-btn" class="btn-side">OBRÓĆ (POZIOM)</button>
-                    <div id="ship-dock">
-                        </div>
-                    <button id="start-battle-btn" class="gold-action-btn" style="display:none;" onclick="initiateBattle()">START BITWY!</button>
+            <h2>PRZYGOTOWANIE FLOTY</h2>
+            <div class="setup-grid-container">
+                <div id="setup-board" class="battle-grid"></div>
+                <div class="setup-tools">
+                    <button id="rotate-btn" class="tool-btn">OBRÓĆ: POZIOM</button>
+                    <div id="dock-status">Rozmieść statki (5, 4, 3, 3, 2)</div>
+                    <button id="battle-start-btn" class="action-btn-gold" style="display:none;" onclick="launchBattle()">DO BOJU!</button>
                 </div>
             </div>
         </section>
 
         <section id="battle-screen" class="screen">
-            <div class="battle-header">
-                <div class="battle-stats">TWOJE HP: <span id="p-hp">100%</span></div>
-                <h2 id="turn-display">TWOJA KOLEJ</h2>
-                <div class="battle-stats">WRÓG HP: <span id="e-hp">100%</span></div>
+            <div class="battle-hud">
+                <div class="hp-bar player-hp">TWOJA FLOTA: <span id="hp-p">100%</span></div>
+                <div id="turn-indicator" class="turn-label">TWOJA KOLEJ</div>
+                <div class="hp-bar enemy-hp">PIRACI: <span id="hp-e">100%</span></div>
             </div>
-            <div class="game-container">
-                <div class="board-section">
-                    <h3>TWOJA FLOTA</h3>
-                    <div id="p-battle-board" class="board"></div>
+            
+            <div class="battle-fields">
+                <div class="field-wrap">
+                    <p>TWOJE MORZE</p>
+                    <div id="p-field" class="battle-grid"></div>
                 </div>
-                <div class="board-section">
-                    <h3>RADAR WROGA</h3>
-                    <div id="e-battle-board" class="board"></div>
+                <div class="field-wrap">
+                    <p>RADAR WROGA</p>
+                    <div id="e-field" class="battle-grid"></div>
                 </div>
             </div>
-            <p id="battle-log">Zlokalizuj statki piratów!</p>
+            <div id="battle-msg" class="event-log">Wypatruj masztów na horyzoncie...</div>
         </section>
 
         <section id="settings-screen" class="screen">
-            <h2>USTAWIENIA GRY</h2>
-            <div class="settings-box">
-                <div class="setting-item">
-                    <span>MUZYKA I DŹWIĘKI</span>
-                    <button id="audio-toggle" onclick="toggleAudio()">WŁĄCZONE</button>
+            <h2 class="section-title">USTAWIENIA</h2>
+            <div class="settings-list">
+                <div class="setting-row">
+                    <span>MUZYKA I SFX:</span>
+                    <button id="audio-toggle" onclick="toggleAudioSystem()">WŁĄCZONE</button>
                 </div>
-                <div class="setting-item">
-                    <span>JĘZYK</span>
+                <div class="setting-row">
+                    <span>JĘZYK:</span>
                     <button>POLSKI</button>
                 </div>
             </div>
-            <button class="gold-action-btn" onclick="showScreen('menu-screen')">POWRÓT DO MENU</button>
+            <button class="action-btn-back" onclick="goToScreen('menu-screen')">POWRÓT</button>
         </section>
     </div>
 
