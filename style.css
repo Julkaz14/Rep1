@@ -16,65 +16,62 @@ body {
     min-height: 100vh;
 }
 
-/* OKNO MENU */
-.overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-    display: flex; justify-content: center; align-items: center; z-index: 100;
+/* Układ obok siebie */
+.ocean {
+    display: flex;
+    flex-direction: row; /* Elementy w rzędzie */
+    align-items: flex-start;
+    gap: 40px; /* Odstęp między planszą a stocznią */
+    padding: 20px;
 }
 
-.parchment {
-    background: var(--parchment); padding: 50px; border: 10px double var(--wood);
-    color: var(--wood); text-align: center; border-radius: 5px;
+.board-box {
+    text-align: center;
 }
 
-h1 { font-family: 'Pirata One'; font-size: 4.5rem; margin: 0; }
-
-/* PLANSZA - TO NAPRAWIA LEWITOWANIE */
 .grid {
     display: grid; 
     grid-template-columns: repeat(10, var(--cell-size));
     grid-template-rows: repeat(10, var(--cell-size));
     background: var(--water); 
     border: 5px solid var(--wood);
-    position: relative; /* Statki będą się trzymać TEGO elementu */
+    position: relative; 
     width: 400px;
     height: 400px;
-    box-sizing: content-box;
 }
 
 .cell { 
     width: var(--cell-size); 
     height: var(--cell-size); 
     border: 1px solid rgba(255,255,255,0.1); 
-    box-sizing: border-box;
 }
 
-/* STATKI */
+.shipyard {
+    width: 240px; 
+    min-height: 400px; 
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--wood); 
+    display: flex; 
+    flex-direction: column; 
+    gap: 15px; 
+    padding: 15px;
+    align-items: center;
+}
+
 .ship-drag { 
     background: var(--wood); 
     border: 1px solid #2b1d19; 
     cursor: grab; 
     z-index: 10;
-    box-sizing: border-box;
-    position: static; /* Domyślnie w stoczni */
 }
 
-/* TRAFIENIA */
-.hit { background: #c62828 !important; }
-.hit::after { content: '💥'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
-
-.sunk { background: #000 !important; border: 1px solid #333 !important; }
-.sunk::after { content: '💀' !important; font-size: 18px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
+.hit { background: #c62828 !important; position: relative; }
+.hit::after { content: '💥'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.sunk { background: #000 !important; position: relative; }
+.sunk::after { content: '💀'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .miss { background: rgba(255,255,255,0.2) !important; }
 
-.shipyard {
-    width: 240px; min-height: 400px; background: rgba(255,255,255,0.05);
-    border: 2px solid var(--wood); display: flex; flex-direction: column; gap: 10px; padding: 15px;
-}
-
 .hidden { display: none !important; }
-button { 
-    background: var(--wood); color: white; border: none; padding: 10px 20px; 
-    font-family: 'Pirata One'; font-size: 1.5rem; cursor: pointer; 
-}
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; }
+.parchment { background: var(--parchment); padding: 40px; border: 8px double var(--wood); color: var(--wood); text-align: center; }
+button { background: var(--wood); color: white; border: none; padding: 10px 20px; font-family: 'Pirata One'; font-size: 1.5rem; cursor: pointer; }
