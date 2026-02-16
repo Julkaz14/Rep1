@@ -1,31 +1,29 @@
-/* --- FUNDAMENTY --- */
 :root {
-    --gold: #d4af37;
-    --gold-bright: #ffdf00;
-    --parchment: #f4e4bc;
-    --sand: #c2b280;
-    --wood: #3e2723;
-    --water: #00695c;
-    --dark: #1a1a1a;
+    --gold: #ffcc00;
+    --gold-dark: #b8860b;
+    --paper: #e9d7a5;
+    --wood: #2b1d0e;
+    --sea: #0077be;
+    --danger: #cc0000;
 }
 
 body {
-    background-color: var(--dark);
+    background: #111;
     margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Garamond', serif;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    color: var(--parchment);
+    color: var(--paper);
 }
 
 #game-window {
-    width: 960px;
-    height: 600px;
-    background-color: var(--wood);
-    border: 10px solid #5d4037;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    width: 1000px;
+    height: 650px;
+    background: var(--wood);
+    border: 12px solid #5d4037;
+    box-shadow: 0 0 100px rgba(0,0,0,0.9);
     position: relative;
     overflow: hidden;
 }
@@ -36,136 +34,72 @@ body {
     height: 100%;
     flex-direction: column;
     align-items: center;
-    padding: 30px;
+    padding: 20px;
     box-sizing: border-box;
 }
 
 .screen.active { display: flex; }
 
-/* --- MENU --- */
-.game-title {
-    font-size: 4rem;
+/* TYTUŁY I MENU */
+.main-title {
+    font-size: 5rem;
     color: var(--gold);
-    text-shadow: 4px 4px #000;
-    margin-bottom: 0;
+    text-shadow: 5px 5px 0px #000;
+    margin: 40px 0 10px;
 }
 
-.menu-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-top: 50px;
-}
-
-.menu-buttons button, .gold-action-btn {
-    background: linear-gradient(to bottom, var(--gold-bright), var(--gold));
-    border: 3px solid #7d6608;
-    padding: 15px 40px;
-    font-size: 1.2rem;
+.menu-btn, .action-btn-gold {
+    background: linear-gradient(180deg, var(--gold), var(--gold-dark));
+    border: 3px solid #000;
+    padding: 12px 35px;
+    font-size: 1.3rem;
     font-weight: bold;
     cursor: pointer;
-    border-radius: 5px;
-    transition: 0.2s;
+    margin: 10px;
+    border-radius: 4px;
+    box-shadow: 0 4px 0px #000;
 }
 
-.menu-buttons button:hover, .gold-action-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px var(--gold);
-}
+.menu-btn:hover, .action-btn-gold:hover { transform: translateY(-2px); filter: brightness(1.2); }
 
-/* --- KREATOR --- */
-.creator-container {
-    display: flex;
-    gap: 40px;
-    background: rgba(0,0,0,0.4);
-    padding: 20px;
-    border-radius: 10px;
-}
+/* KREATOR I STATYSTYKI */
+.creator-flex { display: flex; gap: 50px; background: rgba(0,0,0,0.5); padding: 30px; border-radius: 10px; }
 
-.avatar-preview {
-    width: 160px;
-    height: 220px;
-    background: #e0ac69;
-    border: 5px solid var(--gold);
+#visual-preview {
+    width: 180px;
+    height: 250px;
+    background: #d2b48c;
+    border: 6px solid var(--gold);
     position: relative;
 }
 
-#hair-part { width: 100%; height: 50px; position: absolute; top: 0; }
-#clothes-part { width: 100%; height: 110px; position: absolute; bottom: 0; }
+#hair-layer { width: 100%; height: 60px; position: absolute; top: 0; z-index: 2; }
+#clothes-layer { width: 100%; height: 130px; position: absolute; bottom: 0; z-index: 1; }
 
-.form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
-.form-group label { font-weight: bold; margin-bottom: 5px; color: var(--gold); }
-input[type="text"] { padding: 8px; background: var(--parchment); border: none; }
-
-/* --- PARGAMIN --- */
-.parchment-container {
-    background: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-    padding: 20px;
-    height: 80%;
-}
-
-.parchment {
-    background-color: var(--parchment);
-    color: #2b1d0e;
-    padding: 40px;
-    border-radius: 5px;
-    border: 2px solid #d3c4a1;
-    max-width: 700px;
-    line-height: 1.6;
-    font-size: 1.2rem;
-    box-shadow: inset 0 0 50px rgba(0,0,0,0.1);
-}
-
-/* --- STATYSTYKI --- */
-.skills-box {
-    background: rgba(0,0,0,0.5);
-    padding: 20px;
-    width: 80%;
-    border-radius: 10px;
+.skill-card {
+    display: flex;
+    justify-content: space-between;
+    background: #3e2723;
+    padding: 10px 20px;
+    margin: 10px 0;
+    width: 400px;
     border: 1px solid var(--gold);
 }
 
-.skill-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #444;
-}
-
-.skill-controls button {
-    background: var(--gold);
-    border: none;
-    width: 30px;
-    height: 30px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-/* --- PLANSZE DO GRY --- */
-.board {
+/* BITWA */
+.battle-grid {
     display: grid;
-    grid-template-columns: repeat(10, 28px);
-    grid-template-rows: repeat(10, 28px);
+    grid-template-columns: repeat(10, 32px);
+    grid-template-rows: repeat(10, 32px);
     gap: 1px;
-    background-color: #222;
+    background: #000;
     border: 3px solid var(--gold);
 }
 
-.cell {
-    width: 28px;
-    height: 28px;
-    background-color: var(--water);
-    cursor: pointer;
-    border: 0.1px solid rgba(255,255,255,0.05);
-}
+.cell { width: 32px; height: 32px; background: var(--sea); cursor: pointer; }
+.cell.ship { background: #4b3621; }
+.cell.hit { background: var(--danger); }
+.cell.miss { background: #1a1a1a; }
 
-.cell.ship { background-color: #4e342e; } /* Twoje statki */
-.cell.hit { background-color: #b71c1c !important; }
-.cell.miss { background-color: #263238 !important; }
-
-/* Ukrywanie statków wroga */
-#e-battle-board .cell.ship { background-color: var(--water); }
-
-.game-container { display: flex; gap: 40px; margin-top: 20px; }
-.battle-header { display: flex; gap: 100px; align-items: center; }
+.battle-hud { display: flex; gap: 40px; margin-bottom: 20px; width: 100%; justify-content: space-between; }
+.hp-bar { font-weight: bold; padding: 10px; background: #000; color: #fff; width: 180px; text-align: center; border: 2px solid var(--gold); }
