@@ -1,122 +1,82 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const playerBoardContainer = document.querySelector('#player-board');
-    const computerBoardContainer = document.querySelector('#computer-board');
-    const messageDisplay = document.querySelector('#message');
-    const startBtn = document.querySelector('#start-game-btn');
+:root {
+    --deep-blue: #002147;
+    --sea-green: #2a9d8f;
+    --wood: #3d2b1f;
+    --parchment: #f4e4bc;
+}
 
-    const width = 10;
-    const playerCells = [];
-    const computerCells = [];
-    let isGameOver = false;
-    let currentPlayer = 'user';
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Special Elite', cursive;
+    background: radial-gradient(circle, #1b4965 0%, #001219 100%);
+    color: var(--parchment);
+    overflow: hidden;
+}
 
-    // Konfiguracja statków (nazwa i długość)
-    const shipArray = [
-        { name: 'destroyer', size: 2 },
-        { name: 'submarine', size: 3 },
-        { name: 'cruiser', size: 3 },
-        { name: 'battleship', size: 4 },
-        { name: 'carrier', size: 5 }
-    ];
+/* Menu */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
 
-    // 1. Tworzenie plansz
-    function createBoard(container, cells) {
-        for (let i = 0; i < width * width; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.dataset.id = i;
-            container.appendChild(cell);
-            cells.push(cell);
-        }
-    }
+.parchment-menu {
+    background: var(--parchment);
+    padding: 50px;
+    border-radius: 10px;
+    border: 8px double var(--wood);
+    color: var(--wood);
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+}
 
-    createBoard(playerBoardContainer, playerCells);
-    createBoard(computerBoardContainer, computerCells);
+h1 { font-family: 'Pirata One', system-ui; font-size: 4rem; margin: 0; }
 
-    // 2. Losowe rozmieszczanie statków
-    function generate(boardCells, ship) {
-        let randomDirection = Math.floor(Math.random() * 2); // 0 - poziomo, 1 - pionowo
-        let current = boardCells;
-        let direction = (randomDirection === 0) ? 1 : width;
-        let randomStart = Math.abs(Math.floor(Math.random() * boardCells.length - (ship.size * direction)));
+button {
+    background: var(--wood);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-family: 'Pirata One';
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: 0.3s;
+    margin: 10px;
+}
 
-        const isTaken = Array.from({length: ship.size}, (_, i) => randomStart + i * direction)
-                            .some(index => boardCells[index].classList.contains('ship'));
-        
-        const isAtRightEdge = randomDirection === 0 && Array.from({length: ship.size}, (_, i) => randomStart + i)
-                                                        .some(index => index % width === width - 1);
-        const isAtLeftEdge = randomDirection === 0 && Array.from({length: ship.size}, (_, i) => randomStart + i)
-                                                        .some(index => index % width === 0);
+button:hover { background: #5c4033; transform: scale(1.05); }
 
-        if (!isTaken && !isAtRightEdge && !isAtLeftEdge) {
-            for (let i = 0; i < ship.size; i++) {
-                boardCells[randomStart + i * direction].classList.add('ship');
-            }
-        } else {
-            generate(boardCells, ship); // Próbuj ponownie, jeśli miejsce zajęte
-        }
-    }
+/* Plansze */
+.game-container { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+.boards-wrapper { display: flex; gap: 50px; margin-top: 20px; }
 
-    // Rozmieść statki dla obu stron
-    shipArray.forEach(ship => generate(playerCells, ship));
-    shipArray.forEach(ship => generate(computerCells, ship));
+.grid {
+    display: grid;
+    grid-template-columns: repeat(10, 35px);
+    grid-template-rows: repeat(10, 35px);
+    gap: 1px;
+    background: rgba(255,255,255,0.1);
+    border: 4px solid var(--wood);
+}
 
-    // 3. Logika strzału gracza
-    function handlePlayerClick(e) {
-        if (isGameOver || currentPlayer !== 'user') return;
-        const cell = e.target;
-        if (cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+.cell {
+    width: 35px;
+    height: 35px;
+    background: rgba(42, 157, 143, 0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: crosshair;
+}
 
-        if (cell.classList.contains('ship')) {
-            cell.classList.add('hit');
-            messageDisplay.innerText = "TRAFIONY! Strzelaj dalej!";
-        } else {
-            cell.classList.add('miss');
-            messageDisplay.innerText = "Pudło! Kolej komputera.";
-            currentPlayer = 'computer';
-            setTimeout(computerTurn, 800);
-        }
-        checkGameOver();
-    }
+/* Statki i trafienia */
+.ship { background: #4a4e69 !important; border-radius: 4px; }
+.hit { background: #e63946 !important; position: relative; }
+.hit::after { content: '⚓'; display: block; text-align: center; }
+.miss { background: #a8dadc !important; opacity: 0.4; }
 
-    // 4. Logika strzału komputera (Proste AI)
-    function computerTurn() {
-        if (isGameOver) return;
-        let random = Math.floor(Math.random() * playerCells.length);
-        
-        if (!playerCells[random].classList.contains('hit') && !playerCells[random].classList.contains('miss')) {
-            if (playerCells[random].classList.contains('ship')) {
-                playerCells[random].classList.add('hit');
-                messageDisplay.innerText = "Komputer trafił! Strzela znowu.";
-                setTimeout(computerTurn, 800);
-            } else {
-                playerCells[random].classList.add('miss');
-                messageDisplay.innerText = "Twoja kolej!";
-                currentPlayer = 'user';
-            }
-        } else {
-            computerTurn();
-        }
-        checkGameOver();
-    }
-
-    // 5. Sprawdzanie końca gry
-    function checkGameOver() {
-        const playerHits = playerCells.filter(cell => cell.classList.contains('hit')).length;
-        const computerHits = computerCells.filter(cell => cell.classList.contains('hit')).length;
-        const totalShipCells = shipArray.reduce((acc, ship) => acc + ship.size, 0);
-
-        if (playerHits === totalShipCells) {
-            messageDisplay.innerText = "GRATULACJE! WYGRAŁEŚ!";
-            isGameOver = true;
-        }
-        if (computerHits === totalShipCells) {
-            messageDisplay.innerText = "PRZEGRAŁEŚ! Komputer zatopił Twoją flotę.";
-            isGameOver = true;
-        }
-    }
-
-    // Event Listeners
-    computerCells.forEach(cell => cell.addEventListener('click', handlePlayerClick));
-    startBtn.addEventListener('click', () => location.reload());
-});
+.hidden-ships .ship { background: transparent !important; }
+.hidden { display: none !important; }
