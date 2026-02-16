@@ -13,9 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedShip = null;
     let gameActive = false;
     let isPlayerTurn = true;
-    let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    // --- SYSTEM DŹWIĘKÓW (SYNTEZATOR) ---
+    // --- LOGIKA AI ---
+    let availableCPUShots = Array.from({length: 100}, (_, i) => i);
+    let cpuHuntQueue = []; // Lista pól do sprawdzenia po trafieniu
+
+    // --- SYSTEM DŹWIĘKÓW ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playExplosionSound() {
@@ -28,8 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.5);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
     }
 
     function playSunkSound() {
@@ -42,18 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
         gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 1);
+        osc.start(); osc.stop(audioCtx.currentTime + 1);
     }
 
-    // --- MUZYKA I START ---
     const startMusic = () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         music.volume = 0.1;
-        music.play().catch(e => console.log("Czekam na kliknięcie..."));
+        music.play().catch(() => {});
     };
 
-    // Muzyka włączy się przy jakimkolwiek kliknięciu w stronę
     window.addEventListener('click', startMusic, { once: true });
 
     playBtn.addEventListener('click', () => {
@@ -63,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         initGame();
     });
 
-    // --- LOGIKA GRY ---
     function initGame() {
         playerBoard.innerHTML = '';
         computerBoard.innerHTML = '';
@@ -172,10 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
-            playExplosionSound(); // Dźwięk trafienia
+            playExplosionSound();
             ship.hits++;
             if (ship.hits === ship.len) {
-                playSunkSound(); // Dźwięk zatopienia
+                playSunkSound();
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             }
             checkGameOver();
@@ -186,25 +184,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- ULEPSZONE AI: HUNT & TARGET ---
     function cpuAttack() {
         if (!gameActive) return;
-        const index = Math.floor(Math.random() * availableCPUShots.length);
-        const shotId = availableCPUShots.splice(index, 1)[0];
+
+        let shotId;
+
+        // Jeśli AI ma "cele" w kolejce, strzela w nie
+        if (cpuHuntQueue.length > 0) {
+            shotId = cpuHuntQueue.shift();
+        } else {
+            // W przeciwnym razie strzela losowo z dostępnych pól
+            const index = Math.floor(Math.random() * availableCPUShots.length);
+            shotId = availableCPUShots.splice(index, 1)[0];
+        }
+
+        // Usuń shotId z dostępnych, jeśli przyszedł z HuntQueue
+        availableCPUShots = availableCPUShots.filter(id => id !== shotId);
+
         const cell = playerBoard.children[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
+
         if (ship) {
             cell.classList.add('hit');
             playExplosionSound();
             ship.hits++;
+
+            // Dodaj sąsiednie pola do kolejki polowania (góra, dół, lewo, prawo)
+            const neighbors = [shotId - 10, shotId + 10, shotId - 1, shotId + 1];
+            neighbors.forEach(n => {
+                // Sprawdź czy pole jest na planszy, nie było strzelane i czy nie wychodzi poza krawędź boczną
+                if (n >= 0 && n < 100 && availableCPUShots.includes(n)) {
+                    if (Math.abs((n % 10) - (shotId % 10)) <= 1) { // zabezpieczenie krawędzi
+                        if (!cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
+                    }
+                }
+            });
+
             if (ship.hits === ship.len) {
                 playSunkSound();
                 ship.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
+                cpuHuntQueue = []; // Wyczyść kolejkę po zatopieniu, wróć do polowania
             }
+            
             checkGameOver();
             if (gameActive) setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
+            statusText.innerText = "TWOJA TURA, KAPITANIE!";
         }
     }
 
@@ -213,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { alert(pWin ? "WYGRANA!" : "PRZEGRANA!"); location.reload(); }, 500);
+            setTimeout(() => { alert(pWin ? "WYGRANA! Morze jest Twoje!" : "PORAŻKA! Ryby Cię zjedzą..."); location.reload(); }, 500);
         }
     }
 });
