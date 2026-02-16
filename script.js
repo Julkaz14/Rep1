@@ -12,8 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const sndMiss = document.getElementById('snd-miss');
 
     const shipTypes = [5, 4, 3, 3, 2, 2];
+    const totalHealth = shipTypes.reduce((a, b) => a + b, 0); // Wynik: 19
+    
     let playerShips = [];
     let computerShips = [];
+    let playerHealth = totalHealth;
+    let cpuHealth = totalHealth;
+    
     let draggedShip = null;
     let gameActive = false;
     let isPlayerTurn = true;
@@ -39,16 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function initGame() {
         playerBoard.innerHTML = ''; 
         computerBoard.innerHTML = '';
+        playerHealth = totalHealth;
+        cpuHealth = totalHealth;
         renderShipyard();
         for (let i = 0; i < 100; i++) {
             const pCell = document.createElement('div');
-            pCell.classList.add('cell'); 
-            pCell.dataset.id = i;
+            pCell.classList.add('cell'); pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
             
             const cCell = document.createElement('div');
-            cCell.classList.add('cell'); 
-            cCell.dataset.id = i;
+            cCell.classList.add('cell'); cCell.dataset.id = i;
             cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
@@ -60,22 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const slot = document.createElement('div');
             slot.classList.add('ship-slot');
             slot.dataset.slotIdx = idx;
-            
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
             ship.id = `ship-${idx}`;
-            ship.dataset.len = len; 
-            ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`; 
-            ship.style.height = `40px`;
+            ship.dataset.len = len; ship.dataset.vert = "false";
+            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
             ship.draggable = true;
-
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
-            ship.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleShipClick(ship);
-            });
-            
+            ship.addEventListener('click', (e) => { e.stopPropagation(); handleShipClick(ship); });
             slot.appendChild(ship);
             shipyard.appendChild(slot);
         });
@@ -83,35 +80,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleShipClick(ship) {
         if(gameActive) return;
-        if(ship.parentElement.classList.contains('grid') || ship.parentElement === playerBoard) {
+        // Sprawdzamy czy statek jest na planszy (w dowolny sposób)
+        if(ship.parentElement !== shipyard.querySelector(`[data-slot-idx="${ship.id.split('-')[1]}"]`)) {
             const shipIdx = ship.id.split('-')[1];
             const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
             ship.style.position = "relative";
-            ship.style.left = "0";
-            ship.style.top = "0";
+            ship.style.left = "0"; ship.style.top = "0";
             playerShips = playerShips.filter(s => s.id !== ship.id);
             originalSlot.appendChild(ship);
             startBattleBtn.classList.add('hidden');
         } else {
             const isVert = ship.dataset.vert === "true";
             const len = parseInt(ship.dataset.len);
-            const newVert = !isVert;
-            ship.dataset.vert = newVert;
-            ship.style.width = newVert ? "40px" : `${len * 40}px`;
-            ship.style.height = newVert ? `${len * 40}px` : "40px";
+            ship.dataset.vert = !isVert;
+            ship.style.width = !isVert ? "40px" : `${len * 40}px`;
+            ship.style.height = !isVert ? `${len * 40}px` : "40px";
         }
     }
 
     playerBoard.addEventListener('dragover', e => e.preventDefault());
-    
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
         const rect = playerBoard.getBoundingClientRect();
         const cellX = Math.floor((e.clientX - rect.left) / 40);
         const cellY = Math.floor((e.clientY - rect.top) / 40);
         const startId = cellY * 10 + cellX;
-
-        if (startId < 0 || startId > 99) return;
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
 
@@ -128,12 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function canPlace(id, len, vert, sId, currentShips) {
+    function canPlace(id, len, vert, sId, ships) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99 || (vert && curr < 0)) return false;
-            if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
-            if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
+            if (curr < 0 || curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
+            if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
     }
@@ -171,96 +163,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-        
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            cpuHealth--; // Odejmujemy życie komputerowi
             if (ship.hits === ship.len) {
                 playSound(sndSink);
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-            } else {
-                playSound(sndHit);
-            }
-            checkEndConditions();
+            } else { playSound(sndHit); }
+            
+            if (cpuHealth <= 0) endGame(true);
         } else {
-            cell.classList.add('miss');
-            playSound(sndMiss);
-            isPlayerTurn = false;
-            updateStatus();
+            cell.classList.add('miss'); playSound(sndMiss);
+            isPlayerTurn = false; updateStatus();
             setTimeout(cpuAttack, 800);
         }
     }
 
     function cpuAttack() {
         if (!gameActive) return;
-        
         let shotId;
         if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
         else shotId = availableCPUShots.splice(Math.floor(Math.random() * availableCPUShots.length), 1)[0];
 
-        const cells = playerBoard.querySelectorAll('.cell');
-        const cell = cells[shotId];
+        const cell = playerBoard.querySelectorAll('.cell')[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            playerHealth--; // Odejmujemy życie graczowi
             
             if (ship.hits === ship.len) {
                 playSound(sndSink);
-                ship.coords.forEach(c => cells[c].classList.add('sunk'));
+                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
                 cpuHuntQueue = [];
             } else {
                 playSound(sndHit);
                 [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
-                    if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
+                    if (n >= 0 && n < 100 && !playerBoard.querySelectorAll('.cell')[n].classList.contains('hit')) {
                         if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
                     }
                 });
             }
 
-            // Sprawdź natychmiast po trafieniu
-            if (checkEndConditions()) return;
-            setTimeout(cpuAttack, 700);
+            // KLUCZOWE: Sprawdzanie punktów życia
+            if (playerHealth <= 0) {
+                endGame(false);
+            } else {
+                setTimeout(cpuAttack, 700);
+            }
         } else {
-            cell.classList.add('miss');
-            playSound(sndMiss);
-            isPlayerTurn = true;
-            updateStatus();
+            cell.classList.add('miss'); playSound(sndMiss);
+            isPlayerTurn = true; updateStatus();
         }
     }
 
-    // --- NOWA, NIEZAWODNA FUNKCJA SPRAWDZANIA KOŃCA ---
-    function checkEndConditions() {
-        const playerLost = playerShips.every(ship => 
-            ship.coords.every(coord => playerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
-        );
-        const computerLost = computerShips.every(ship => 
-            ship.coords.every(coord => computerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
-        );
-
-        if (playerLost) {
-            announceResult(false);
-            return true;
-        }
-        if (computerLost) {
-            announceResult(true);
-            return true;
-        }
-        return false;
-    }
-
-    function announceResult(isWin) {
+    function endGame(isWin) {
         gameActive = false;
+        isPlayerTurn = false; // Blokuje zmianę statusu na "Twoja tura"
         statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
         
-        // Blokada klikania na planszę
-        computerBoard.style.pointerEvents = "none";
-
         setTimeout(() => {
-            alert(isWin ? "BRAWO! Zniszczyłeś flotę wroga!" : "TWOJA FLOTA ZATONĘŁA. Przegrałeś bitwę.");
+            alert(isWin ? "ZWYCIĘSTWO! WRÓG POKONANY!" : "PRZEGRANA! TWOJA FLOTA ZATONĘŁA.");
             location.reload();
         }, 500);
     }
