@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let playerShipsCoords = [];
     let computerShipsCoords = [];
     let gameActive = false;
+    let isCpuTurn = false; // Zabezpieczenie przed zawieszaniem
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     document.getElementById('play-btn').addEventListener('click', () => {
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function genShipyard() {
+        shipyard.innerHTML = ''; // Czyścimy na start
         shipsToPlace.forEach(s => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
@@ -50,16 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.draggable = true;
             ship.dataset.len = s.len;
             ship.dataset.vert = "false";
-            // Rozmiar fizyczny statku
             ship.style.width = `${s.len * 40}px`;
             ship.style.height = `40px`;
 
-            ship.addEventListener('dragstart', (e) => {
+            ship.addEventListener('dragstart', () => {
                 draggedShip = ship;
                 setTimeout(() => ship.style.opacity = "0.5", 0);
             });
             ship.addEventListener('dragend', () => {
-                draggedShip.style.opacity = "1";
+                if(draggedShip) draggedShip.style.opacity = "1";
                 draggedShip = null;
             });
             ship.addEventListener('click', () => rotateShip(ship));
@@ -75,20 +76,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ship.dataset.vert = !isVert;
         ship.classList.toggle('vertical');
         
-        if (!isVert) { // Zmieniamy na pion
+        if (!isVert) { 
             ship.style.width = `40px`;
             ship.style.height = `${len * 40}px`;
-        } else { // Zmieniamy na poziom
+        } else { 
             ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
         }
 
-        // Jeśli statek był na planszy, sprawdź czy po obrocie nie wystaje
         if(ship.parentNode === playerBoard) {
-            const startId = parseInt(playerShipsCoords.find(x => x.id === ship.id).coords[0]);
+            const shipData = playerShipsCoords.find(x => x.id === ship.id);
+            const startId = parseInt(shipData.coords[0]);
             if(!canPlace(startId, len, !isVert, ship.id)) {
+                // Nie mieści się po obrocie - wróć do stoczni
                 ship.style.position = "static";
-                ship.style.width = !isVert ? `${len * 40}px` : `40px`; // Cofnij wizualnie
+                ship.style.width = !isVert ? `${len * 40}px` : `40px`; 
                 ship.style.height = !isVert ? `40px` : `${len * 40}px`;
                 ship.dataset.vert = isVert;
                 ship.classList.toggle('vertical');
@@ -104,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playerBoard.addEventListener('dragover', e => e.preventDefault());
     playerBoard.addEventListener('drop', e => {
         const startId = parseInt(e.target.dataset.id);
+        if (isNaN(startId)) return;
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
 
@@ -146,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA! Celuj w wody wroga.";
+        statusText.innerText = "TWOJA TURA! Ognia!";
         setupCPU();
     });
 
@@ -175,22 +178,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerShoot(id, cell) {
-        if(!gameActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        if(!gameActive || isCpuTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        
         let hit = computerShipsCoords.find(s => s.coords.includes(id));
         if(hit) {
             cell.classList.add('hit');
-            if(document.querySelectorAll('.computer-grid .hit').length === 19) { alert("WYGRAŁEŚ!"); location.reload(); }
+            statusText.innerText = "TRAFIONY!";
+            if(document.querySelectorAll('.computer-grid .hit').length === 19) { 
+                gameActive = false;
+                setTimeout(() => { alert("ZWYCIĘSTWO, KAPITANIE!"); location.reload(); }, 100);
+            }
         } else {
             cell.classList.add('miss');
-            gameActive = false;
-            statusText.innerText = "WRÓG CELUJE...";
-            setTimeout(cpuShoot, 800);
+            statusText.innerText = "PUDŁO...";
+            isCpuTurn = true;
+            setTimeout(cpuShoot, 1000);
         }
     }
 
-    // NAPRAWIONA LOGIKA WROGA - NIE ZAWIESZA SIĘ
     function cpuShoot() {
-        if(availableCPUShots.length === 0) return;
+        if(!gameActive || availableCPUShots.length === 0) return;
         
         const randomIndex = Math.floor(Math.random() * availableCPUShots.length);
         const shotId = availableCPUShots.splice(randomIndex, 1)[0];
@@ -199,12 +206,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let hit = playerShipsCoords.find(s => s.coords.includes(shotId));
         if(hit) {
             cell.classList.add('hit');
-            if(document.querySelectorAll('.player-grid .hit').length === 19) { alert("PRZEGRAŁEŚ!"); location.reload(); }
-            setTimeout(cpuShoot, 800);
+            statusText.innerText = "OBERWALIŚMY!";
+            if(document.querySelectorAll('.player-grid .hit').length === 19) { 
+                gameActive = false;
+                setTimeout(() => { alert("NASZA FLOTA ZATONĘŁA..."); location.reload(); }, 100);
+                return;
+            }
+            // Jeśli trafił, strzela znowu
+            setTimeout(cpuShoot, 1000);
         } else {
             cell.classList.add('miss');
             statusText.innerText = "TWOJA TURA!";
-            gameActive = true;
+            isCpuTurn = false;
         }
     }
 });
