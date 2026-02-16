@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kapitańska Bitwa Morska</title>
+    <title>Bitwa Morska</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="main-menu" class="overlay">
         <div class="parchment">
-            <h1>Bitwa Morska Pro</h1>
+            <h1>Bitwa Morska</h1>
             <p>Ustaw swoją flotę i zniszcz przeciwnika!</p>
             <button id="play-btn">Rozpocznij Grę</button>
         </div>
@@ -18,8 +18,8 @@
 
     <div class="game-container hidden" id="game-ui">
         <div class="header">
-            <h2 id="status">Przeciągnij statki ze stoczni na mapę. Kliknij na statek, aby go obrócić!</h2>
-            <button id="start-battle" class="hidden">OGNIA! Rozpocznij Bitwę!</button>
+            <h2 id="status">Przeciągnij statki na mapę. Kliknij na statek, aby go obrócić!</h2>
+            <button id="start-battle" class="hidden">OGNIA!</button>
         </div>
 
         <div class="ocean">
@@ -29,9 +29,8 @@
             </div>
             
             <div class="board-box" id="shipyard-section">
-                <h3>Stocznia (Twoje statki)</h3>
-                <div class="shipyard" id="shipyard">
-                    </div>
+                <h3>Stocznia</h3>
+                <div class="shipyard" id="shipyard"></div>
             </div>
 
             <div class="board-box hidden" id="enemy-section">
