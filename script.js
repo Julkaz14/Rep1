@@ -14,51 +14,34 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // --- LOGIKA AI ---
+    // AI MEMORY
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
-    let cpuHuntQueue = []; // Lista pól do sprawdzenia po trafieniu
+    let cpuHuntQueue = []; 
 
-    // --- SYSTEM DŹWIĘKÓW ---
+    // AUDIO CONTEXT (Dźwięki bez plików)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    function playExplosionSound() {
+    function playSound(freq, type, duration, vol) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
 
-    function playSunkSound() {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 1);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 1);
-    }
-
-    const startMusic = () => {
+    const startAudio = () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        music.volume = 0.1;
+        music.volume = 0.15;
         music.play().catch(() => {});
     };
-
-    window.addEventListener('click', startMusic, { once: true });
 
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        startMusic();
+        startAudio();
         initGame();
     });
 
@@ -70,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pCell.classList.add('cell');
             pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
+            
             const cCell = document.createElement('div');
             cCell.classList.add('cell');
             cCell.dataset.id = i;
@@ -90,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
             ship.draggable = true;
-            ship.addEventListener('dragstart', () => { draggedShip = ship; });
+            ship.addEventListener('dragstart', () => draggedShip = ship);
             ship.addEventListener('click', () => rotateShip(ship));
             shipyard.appendChild(ship);
         });
@@ -114,16 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
     playerBoard.addEventListener('dragover', e => e.preventDefault());
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
-        const startId = parseInt(e.target.dataset.id);
+        const target = e.target.classList.contains('cell') ? e.target : e.target.parentElement;
+        const startId = parseInt(target.dataset.id);
         if (isNaN(startId)) return;
+        
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
+        
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-            draggedShip.style.position = "absolute";
+            
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
             playerBoard.appendChild(draggedShip);
@@ -170,69 +157,60 @@ document.addEventListener('DOMContentLoaded', () => {
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
-            playExplosionSound();
+            playSound(120, 'sawtooth', 0.4, 0.2);
             ship.hits++;
             if (ship.hits === ship.len) {
-                playSunkSound();
+                playSound(300, 'sine', 1.2, 0.3);
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             }
             checkGameOver();
         } else {
             cell.classList.add('miss');
             isPlayerTurn = false;
-            setTimeout(cpuAttack, 800);
+            setTimeout(cpuAttack, 700);
         }
     }
 
-    // --- ULEPSZONE AI: HUNT & TARGET ---
+    // AI: HUNT & TARGET LOGIC
     function cpuAttack() {
         if (!gameActive) return;
-
         let shotId;
-
-        // Jeśli AI ma "cele" w kolejce, strzela w nie
         if (cpuHuntQueue.length > 0) {
             shotId = cpuHuntQueue.shift();
         } else {
-            // W przeciwnym razie strzela losowo z dostępnych pól
             const index = Math.floor(Math.random() * availableCPUShots.length);
             shotId = availableCPUShots.splice(index, 1)[0];
         }
 
-        // Usuń shotId z dostępnych, jeśli przyszedł z HuntQueue
         availableCPUShots = availableCPUShots.filter(id => id !== shotId);
-
-        const cell = playerBoard.children[shotId];
+        const cells = playerBoard.querySelectorAll('.cell');
+        const cell = cells[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
             cell.classList.add('hit');
-            playExplosionSound();
+            playSound(100, 'sawtooth', 0.5, 0.2);
             ship.hits++;
-
-            // Dodaj sąsiednie pola do kolejki polowania (góra, dół, lewo, prawo)
-            const neighbors = [shotId - 10, shotId + 10, shotId - 1, shotId + 1];
-            neighbors.forEach(n => {
-                // Sprawdź czy pole jest na planszy, nie było strzelane i czy nie wychodzi poza krawędź boczną
+            
+            // Szukaj sąsiadów
+            [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
                 if (n >= 0 && n < 100 && availableCPUShots.includes(n)) {
-                    if (Math.abs((n % 10) - (shotId % 10)) <= 1) { // zabezpieczenie krawędzi
-                        if (!cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
+                    if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) {
+                        cpuHuntQueue.push(n);
                     }
                 }
             });
 
             if (ship.hits === ship.len) {
-                playSunkSound();
-                ship.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
-                cpuHuntQueue = []; // Wyczyść kolejkę po zatopieniu, wróć do polowania
+                playSound(200, 'sine', 1, 0.3);
+                ship.coords.forEach(c => cells[c].classList.add('sunk'));
+                cpuHuntQueue = []; 
             }
-            
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 800);
+            if (gameActive) setTimeout(cpuAttack, 700);
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
-            statusText.innerText = "TWOJA TURA, KAPITANIE!";
         }
     }
 
@@ -241,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { alert(pWin ? "WYGRANA! Morze jest Twoje!" : "PORAŻKA! Ryby Cię zjedzą..."); location.reload(); }, 500);
+            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
         }
     }
 });
