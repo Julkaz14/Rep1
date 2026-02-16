@@ -3,38 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kapitańska Bitwa Morska</title>
+    <title>Bitwa Morska: Piracka Przygoda</title>
     <link rel="stylesheet" href="styl.css">
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="main-menu" class="overlay">
-        <div class="parchment-menu">
+        <div class="parchment">
             <h1>Kapitańska Bitwa</h1>
-            <button onclick="startGame()">Rozpocznij Przygodę</button>
-            <div class="settings">
-                <label>Muzyka: <input type="checkbox" id="music-toggle" checked></label>
-            </div>
+            <p>Rozmieść flotę i zatop wroga!</p>
+            <button id="play-btn">Rozpocznij Przygodę</button>
+            <div class="music-note">Muzyka włączy się po kliknięciu</div>
         </div>
     </div>
 
     <div class="game-container hidden" id="game-ui">
-        <div class="header-ui">
-            <h2 id="game-status">Rozmieść swoją flotę, Kapitanie!</h2>
-            <div class="controls">
-                <button id="rotate-btn">Obróć Statek (Pion/Poziom)</button>
-                <button id="start-battle" class="hidden">Ognia! (Start)</button>
+        <div class="status-bar">
+            <h2 id="status">Kapitanie, rozmieść statki (klikaj na swoją mapę)!</h2>
+            <div class="actions">
+                <button id="rotate-btn">Zmień orientację (Poziom)</button>
+                <button id="start-battle" class="hidden">OGNIA!</button>
             </div>
         </div>
 
-        <div class="boards-wrapper">
-            <div class="board-box">
+        <div class="ocean">
+            <div class="board-wrapper">
                 <h3>Twoja Mapa</h3>
                 <div id="player-board" class="grid"></div>
             </div>
-            <div class="board-box">
+            <div class="board-wrapper">
                 <h3>Wody Wroga</h3>
-                <div id="computer-board" class="grid hidden-ships"></div>
+                <div id="computer-board" class="grid hidden-enemy"></div>
             </div>
         </div>
     </div>
