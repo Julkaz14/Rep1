@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let computerShips = [];
     let draggedShip = null;
     let gameActive = false;
+    let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     document.getElementById('play-btn').addEventListener('click', () => {
@@ -57,44 +58,47 @@ document.addEventListener('DOMContentLoaded', () => {
         ship.dataset.vert = !isVert;
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
-        if (ship.parentNode === playerBoard) {
+        if (ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "static";
             playerShips = playerShips.filter(s => s.id !== ship.id);
-            updateStartButton();
+            startBattleBtn.classList.add('hidden');
         }
     }
 
     playerBoard.addEventListener('dragover', e => e.preventDefault());
     playerBoard.addEventListener('drop', e => {
+        e.preventDefault();
         const startId = parseInt(e.target.dataset.id);
+        if (isNaN(startId)) return;
+
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
+
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for(let i=0; i<len; i++) coords.push(vert ? startId + i*10 : startId + i);
+            
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
+
+            // POZYCJONOWANIE:
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
             playerBoard.appendChild(draggedShip);
-            updateStartButton();
+
+            if (playerShips.length === 6) startBattleBtn.classList.remove('hidden');
         }
     });
 
-    function canPlace(id, len, vert, sId, currentShips) {
-        const row = Math.floor(id / 10);
+    function canPlace(id, len, vert, sId, ships) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99 || (!vert && Math.floor(curr / 10) !== row)) return false;
-            if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
+            if (curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
+            if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
-    }
-
-    function updateStartButton() {
-        if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
     }
 
     startBattleBtn.addEventListener('click', () => {
@@ -102,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA KOLEJ";
+        statusText.innerText = "TWOJA TURA";
         setupCPU();
     });
 
@@ -123,51 +127,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-        let targetShip = computerShips.find(s => s.coords.includes(id));
-        if (targetShip) {
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        let ship = computerShips.find(s => s.coords.includes(id));
+        if (ship) {
             cell.classList.add('hit');
-            targetShip.hits++;
-            if (targetShip.hits === targetShip.len) {
-                targetShip.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "ZATOPIŁEŚ STATEK WROGA!";
-            } else {
-                statusText.innerText = "TRAFIONY! STRZELAJ DALEJ";
+            ship.hits++;
+            if (ship.hits === ship.len) {
+                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+                statusText.innerText = "ZATOPIŁEŚ STATEK!";
             }
-            checkGameOver();
+            checkWin();
         } else {
             cell.classList.add('miss');
-            gameActive = false;
-            statusText.innerText = "RUCH PRZECIWNIKA";
-            setTimeout(cpuAttack, 800);
+            isPlayerTurn = false;
+            statusText.innerText = "RUCH WROGA";
+            setTimeout(cpuAttack, 700);
         }
     }
 
     function cpuAttack() {
-        if (availableCPUShots.length === 0) return;
-        const index = Math.floor(Math.random() * availableCPUShots.length);
-        const shotId = availableCPUShots.splice(index, 1)[0];
-        const cell = playerBoard.children[shotId];
-        let targetShip = playerShips.find(s => s.coords.includes(shotId));
+        if (!gameActive) return;
+        let idx = Math.floor(Math.random() * availableCPUShots.length);
+        let id = availableCPUShots.splice(idx, 1)[0];
+        let cell = playerBoard.children[id];
+        let ship = playerShips.find(s => s.coords.includes(id));
 
-        if (targetShip) {
+        if (ship) {
             cell.classList.add('hit');
-            targetShip.hits++;
-            if (targetShip.hits === targetShip.len) {
-                targetShip.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "WRÓG ZATOPIŁ TWÓJ STATEK!";
+            ship.hits++;
+            if (ship.hits === ship.len) {
+                ship.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
             }
-            checkGameOver();
-            if (!gameActive) return;
-            setTimeout(cpuAttack, 800);
+            checkWin();
+            if (gameActive) setTimeout(cpuAttack, 700);
         } else {
             cell.classList.add('miss');
-            gameActive = true;
-            statusText.innerText = "TWOJA KOLEJ";
+            isPlayerTurn = true;
+            statusText.innerText = "TWOJA TURA";
         }
     }
 
-    function checkGameOver() {
+    function checkWin() {
         const pWin = computerShips.every(s => s.hits === s.len);
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
