@@ -45,12 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
             ship.id = `ship-${idx}`;
-            ship.dataset.len = len;
-            ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`;
-            ship.style.height = `40px`;
+            ship.dataset.len = len; ship.dataset.vert = "false";
+            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
             ship.draggable = true;
-
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', () => rotateShip(ship));
             shipyard.appendChild(ship);
@@ -59,8 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function rotateShip(ship) {
         if(gameActive) return;
-        
-        // Jeśli statek był na planszy, wraca do stoczni
         if(ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "relative";
@@ -68,18 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
             playerShips = playerShips.filter(s => s.id !== ship.id);
             startBattleBtn.classList.add('hidden');
         }
-
         const isVert = ship.dataset.vert === "true";
         const len = parseInt(ship.dataset.len);
-        
         if (!isVert) {
             ship.dataset.vert = "true";
-            ship.style.width = "40px";
-            ship.style.height = `${len * 40}px`;
+            ship.style.width = "40px"; ship.style.height = `${len * 40}px`;
         } else {
             ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`;
-            ship.style.height = "40px";
+            ship.style.width = `${len * 40}px`; ship.style.height = "40px";
         }
     }
 
@@ -90,24 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const cellX = Math.floor((e.clientX - rect.left) / 40);
         const cellY = Math.floor((e.clientY - rect.top) / 40);
         const startId = cellY * 10 + cellX;
-
         if (startId < 0 || startId > 99) return;
-
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
-
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
-            
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-            
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${cellX * 40}px`;
             draggedShip.style.top = `${cellY * 40}px`;
             playerBoard.appendChild(draggedShip);
-            
             if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         }
     });
@@ -126,8 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        updateStatus();
         setupCPU();
+        updateStatus(); // Ustawienie pierwszego napisu
     });
 
     function setupCPU() {
@@ -146,15 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- LOGIKA ZMIANY NAPISÓW ---
+    // --- POPRAWIONA FUNKCJA STATUSU ---
     function updateStatus() {
         if (!gameActive) return;
         if (isPlayerTurn) {
             statusText.innerText = "TWÓJ RUCH";
-            statusText.style.color = "#2e5a88";
+            statusText.style.color = "#2e5a88"; // Niebieski
         } else {
-            statusText.innerText = "RUCH PRZECIWNIKA...";
-            statusText.style.color = "#d32f2f";
+            statusText.innerText = "TURA PRZECIWNIKA...";
+            statusText.style.color = "#d32f2f"; // Czerwony
         }
     }
 
@@ -169,16 +154,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             }
             checkGameOver();
+            // Po trafieniu nadal jest tura gracza, więc status się nie zmienia
         } else {
             cell.classList.add('miss');
-            isPlayerTurn = false;
-            updateStatus();
+            isPlayerTurn = false; 
+            updateStatus(); // ZMIANA NA: TURA PRZECIWNIKA
             setTimeout(cpuAttack, 1000);
         }
     }
 
     function cpuAttack() {
         if (!gameActive) return;
+        
         let shotId;
         if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
         else shotId = availableCPUShots.splice(Math.floor(Math.random() * availableCPUShots.length), 1)[0];
@@ -200,11 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 cpuHuntQueue = [];
             }
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 1000);
+            if (gameActive) setTimeout(cpuAttack, 1000); // Kontynuuj atak AI
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
-            updateStatus();
+            updateStatus(); // ZMIANA NA: TWÓJ RUCH
         }
     }
 
@@ -213,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            statusText.innerText = pWin ? "WYGRAŁEŚ!" : "PRZEGRAŁEŚ!";
+            statusText.innerText = pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
             setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 1000);
         }
     }
