@@ -2,46 +2,41 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitwa Morska: Piracki Los</title>
+    <title>Bitwa Morska</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div id="main-menu" class="overlay">
-        <div class="parchment">
+    <div id="main-menu" class="menu-overlay">
+        <div class="menu-content">
             <h1>Bitwa Morska</h1>
-            <p>Kapitanie! Flota wroga czai się we mgle.</p>
-            <button id="play-btn">Rozpocznij Przygodę</button>
+            <button id="play-btn">START</button>
         </div>
     </div>
 
-    <div class="game-container hidden" id="game-ui">
-        <div class="header">
-            <h2 id="status">Rozmieść statki, wilku morski!</h2>
-            <button id="start-battle" class="hidden">OGNIA!</button>
-        </div>
-
-        <div class="ocean">
-            <div class="board-box">
-                <h3>Twoja Mapa</h3>
+    <div id="game-ui" class="hidden">
+        <h2 id="status">Rozmieść statki</h2>
+        <button id="start-battle" class="hidden">ROZPOCZNIJ BITWĘ</button>
+        
+        <div class="game-area">
+            <div class="board-container">
+                <h3>Twoja plansza</h3>
                 <div id="player-board" class="grid"></div>
             </div>
-            
-            <div class="board-box" id="shipyard-section">
+
+            <div id="shipyard-section" class="board-container">
                 <h3>Stocznia</h3>
-                <div class="shipyard" id="shipyard"></div>
+                <div id="shipyard" class="shipyard"></div>
             </div>
 
-            <div class="board-box hidden" id="enemy-section">
-                <h3>Wody Wroga</h3>
+            <div id="enemy-section" class="board-container hidden">
+                <h3>Plansza wroga</h3>
                 <div id="computer-board" class="grid"></div>
             </div>
         </div>
     </div>
 
-    <audio id="bg-music" loop preload="auto">
+    <audio id="bg-music" loop>
         <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" type="audio/mpeg">
     </audio>
 
