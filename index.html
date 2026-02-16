@@ -2,35 +2,40 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitwa Morska</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div id="main-menu" class="menu-overlay">
-        <div class="menu-content">
+    <div id="main-menu" class="overlay">
+        <div class="menu-box">
             <h1>Bitwa Morska</h1>
-            <button id="play-btn">START</button>
+            <p>Ustaw swoją flotę i zniszcz przeciwnika!</p>
+            <button id="play-btn">Rozpocznij Grę</button>
         </div>
     </div>
 
-    <div id="game-ui" class="hidden">
-        <h2 id="status">Rozmieść statki</h2>
-        <button id="start-battle" class="hidden">ROZPOCZNIJ BITWĘ</button>
-        
-        <div class="game-area">
-            <div class="board-container">
-                <h3>Twoja plansza</h3>
+    <div id="game-ui" class="game-container hidden">
+        <div class="header">
+            <h2 id="status">Kapitanie, rozmieść okręty!</h2>
+            <button id="start-battle" class="hidden">OGNIA!</button>
+        </div>
+
+        <div class="battlefield">
+            <div class="board-section">
+                <h3>Twoja Flota</h3>
                 <div id="player-board" class="grid"></div>
             </div>
 
-            <div id="shipyard-section" class="board-container">
+            <div id="shipyard-section" class="board-section">
                 <h3>Stocznia</h3>
                 <div id="shipyard" class="shipyard"></div>
             </div>
 
-            <div id="enemy-section" class="board-container hidden">
-                <h3>Plansza wroga</h3>
+            <div id="enemy-section" class="board-section hidden">
+                <h3>Wody Wroga</h3>
                 <div id="computer-board" class="grid"></div>
             </div>
         </div>
