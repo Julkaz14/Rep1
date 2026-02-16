@@ -4,30 +4,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const shipyard = document.getElementById('shipyard');
     const startBattleBtn = document.getElementById('start-battle');
     const statusText = document.getElementById('status');
-    const music = document.getElementById('bg-music');
 
-    const shipsToPlace = [
-        { id: 's5', len: 5 }, { id: 's4', len: 4 },
-        { id: 's3a', len: 3 }, { id: 's3b', len: 3 },
-        { id: 's2a', len: 2 }, { id: 's2b', len: 2 }
-    ];
-
+    // Definicja statków: 5, 4, 3, 3, 2, 2
+    const shipTypes = [5, 4, 3, 3, 2, 2];
+    let playerShips = []; // { id, coords, hits }
+    let computerShips = [];
     let draggedShip = null;
-    let playerShipsCoords = [];
-    let computerShipsCoords = [];
     let gameActive = false;
-    let isCpuTurn = false; // Zabezpieczenie przed zawieszaniem
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
+    // Inicjalizacja menu
     document.getElementById('play-btn').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.2;
-        music.play();
-        init();
+        initGame();
     });
 
-    function init() {
+    function initGame() {
         for (let i = 0; i < 100; i++) {
             const pCell = document.createElement('div');
             pCell.classList.add('cell');
@@ -37,110 +30,75 @@ document.addEventListener('DOMContentLoaded', () => {
             const cCell = document.createElement('div');
             cCell.classList.add('cell');
             cCell.dataset.id = i;
-            cCell.addEventListener('click', () => playerShoot(i, cCell));
+            cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
-        genShipyard();
-    }
-
-    function genShipyard() {
-        shipyard.innerHTML = ''; // Czyścimy na start
-        shipsToPlace.forEach(s => {
+        
+        shipTypes.forEach((len, idx) => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
-            ship.id = s.id;
-            ship.draggable = true;
-            ship.dataset.len = s.len;
+            ship.id = `ship-${idx}`;
+            ship.dataset.len = len;
             ship.dataset.vert = "false";
-            ship.style.width = `${s.len * 40}px`;
+            ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
+            ship.draggable = true;
 
-            ship.addEventListener('dragstart', () => {
-                draggedShip = ship;
-                setTimeout(() => ship.style.opacity = "0.5", 0);
-            });
-            ship.addEventListener('dragend', () => {
-                if(draggedShip) draggedShip.style.opacity = "1";
-                draggedShip = null;
-            });
+            ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', () => rotateShip(ship));
             shipyard.appendChild(ship);
         });
     }
 
     function rotateShip(ship) {
-        if(gameActive) return;
+        if (gameActive) return;
         const isVert = ship.dataset.vert === "true";
         const len = parseInt(ship.dataset.len);
-        
         ship.dataset.vert = !isVert;
-        ship.classList.toggle('vertical');
-        
-        if (!isVert) { 
-            ship.style.width = `40px`;
-            ship.style.height = `${len * 40}px`;
-        } else { 
-            ship.style.width = `${len * 40}px`;
-            ship.style.height = `40px`;
-        }
+        ship.style.width = !isVert ? "40px" : `${len * 40}px`;
+        ship.style.height = !isVert ? `${len * 40}px` : "40px";
 
-        if(ship.parentNode === playerBoard) {
-            const shipData = playerShipsCoords.find(x => x.id === ship.id);
-            const startId = parseInt(shipData.coords[0]);
-            if(!canPlace(startId, len, !isVert, ship.id)) {
-                // Nie mieści się po obrocie - wróć do stoczni
-                ship.style.position = "static";
-                ship.style.width = !isVert ? `${len * 40}px` : `40px`; 
-                ship.style.height = !isVert ? `40px` : `${len * 40}px`;
-                ship.dataset.vert = isVert;
-                ship.classList.toggle('vertical');
-                shipyard.appendChild(ship);
-                playerShipsCoords = playerShipsCoords.filter(x => x.id !== ship.id);
-            } else {
-                updateCoords(ship, startId);
-            }
+        if (ship.parentNode === playerBoard) {
+            shipyard.appendChild(ship);
+            ship.style.position = "static";
+            playerShips = playerShips.filter(s => s.id !== ship.id);
+            updateStartButton();
         }
-        checkReady();
     }
 
     playerBoard.addEventListener('dragover', e => e.preventDefault());
     playerBoard.addEventListener('drop', e => {
         const startId = parseInt(e.target.dataset.id);
-        if (isNaN(startId)) return;
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
+        
+        if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
+            const coords = [];
+            for(let i=0; i<len; i++) coords.push(vert ? startId + i*10 : startId + i);
+            
+            playerShips = playerShips.filter(s => s.id !== draggedShip.id);
+            playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
-        if(canPlace(startId, len, vert, draggedShip.id)) {
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
             playerBoard.appendChild(draggedShip);
-            updateCoords(draggedShip, startId);
-            checkReady();
+            updateStartButton();
         }
     });
 
-    function canPlace(id, len, vert, sId) {
+    function canPlace(id, len, vert, sId, currentShips) {
         const row = Math.floor(id / 10);
-        for(let i=0; i<len; i++) {
-            let curr = vert ? id + (i*10) : id + i;
-            if(curr > 99 || (!vert && Math.floor(curr/10) !== row)) return false;
-            if(playerShipsCoords.some(s => s.id !== sId && s.coords.includes(curr))) return false;
+        for (let i = 0; i < len; i++) {
+            let curr = vert ? id + i * 10 : id + i;
+            if (curr > 99 || (!vert && Math.floor(curr / 10) !== row)) return false;
+            if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
     }
 
-    function updateCoords(ship, startId) {
-        const len = parseInt(ship.dataset.len);
-        const vert = ship.dataset.vert === "true";
-        let newC = [];
-        for(let i=0; i<len; i++) newC.push(vert ? startId + (i*10) : startId + i);
-        playerShipsCoords = playerShipsCoords.filter(x => x.id !== ship.id);
-        playerShipsCoords.push({id: ship.id, coords: newC});
-    }
-
-    function checkReady() {
-        if(playerShipsCoords.length === 6) startBattleBtn.classList.remove('hidden');
+    function updateStartButton() {
+        if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         else startBattleBtn.classList.add('hidden');
     }
 
@@ -149,75 +107,79 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA! Ognia!";
+        statusText.innerText = "BITWA! Twoja tura!";
         setupCPU();
     });
 
     function setupCPU() {
-        shipsToPlace.forEach(s => {
-            let ok = false;
-            while(!ok) {
+        shipTypes.forEach((len, idx) => {
+            let placed = false;
+            while (!placed) {
                 let start = Math.floor(Math.random() * 100);
                 let vert = Math.random() > 0.5;
-                let tempC = [];
-                let row = Math.floor(start/10);
-                let fit = true;
-                for(let i=0; i<s.len; i++) {
-                    let curr = vert ? start + (i*10) : start + i;
-                    if(curr > 99 || (!vert && Math.floor(curr/10) !== row) || computerShipsCoords.some(x => x.coords.includes(curr))) {
-                        fit = false; break;
-                    }
-                    tempC.push(curr);
-                }
-                if(fit) {
-                    computerShipsCoords.push({coords: tempC});
-                    ok = true;
+                if (canPlace(start, len, vert, `cpu-${idx}`, computerShips)) {
+                    let coords = [];
+                    for(let i=0; i<len; i++) coords.push(vert ? start + i*10 : start + i);
+                    computerShips.push({ id: `cpu-${idx}`, coords: coords, hits: 0, len: len });
+                    placed = true;
                 }
             }
         });
     }
 
-    function playerShoot(id, cell) {
-        if(!gameActive || isCpuTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
-        
-        let hit = computerShipsCoords.find(s => s.coords.includes(id));
-        if(hit) {
+    function playerAttack(id, cell) {
+        if (!gameActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+
+        let targetShip = computerShips.find(s => s.coords.includes(id));
+        if (targetShip) {
             cell.classList.add('hit');
-            statusText.innerText = "TRAFIONY!";
-            if(document.querySelectorAll('.computer-grid .hit').length === 19) { 
-                gameActive = false;
-                setTimeout(() => { alert("ZWYCIĘSTWO, KAPITANIE!"); location.reload(); }, 100);
+            targetShip.hits++;
+            if (targetShip.hits === targetShip.len) {
+                alert(`ZATOPIONY! Statek ${targetShip.len}-kratkowy wroga!`);
+                targetShip.coords.forEach(coord => computerBoard.children[coord].classList.add('sunk'));
             }
+            checkGameOver();
         } else {
             cell.classList.add('miss');
-            statusText.innerText = "PUDŁO...";
-            isCpuTurn = true;
-            setTimeout(cpuShoot, 1000);
+            gameActive = false;
+            setTimeout(cpuAttack, 600);
         }
     }
 
-    function cpuShoot() {
-        if(!gameActive || availableCPUShots.length === 0) return;
-        
-        const randomIndex = Math.floor(Math.random() * availableCPUShots.length);
-        const shotId = availableCPUShots.splice(randomIndex, 1)[0];
+    function cpuAttack() {
+        if (availableCPUShots.length === 0) return;
+        const index = Math.floor(Math.random() * availableCPUShots.length);
+        const shotId = availableCPUShots.splice(index, 1)[0];
         const cell = playerBoard.children[shotId];
 
-        let hit = playerShipsCoords.find(s => s.coords.includes(shotId));
-        if(hit) {
+        let targetShip = playerShips.find(s => s.coords.includes(shotId));
+        if (targetShip) {
             cell.classList.add('hit');
-            statusText.innerText = "OBERWALIŚMY!";
-            if(document.querySelectorAll('.player-grid .hit').length === 19) { 
-                gameActive = false;
-                setTimeout(() => { alert("NASZA FLOTA ZATONĘŁA..."); location.reload(); }, 100);
-                return;
+            targetShip.hits++;
+            if (targetShip.hits === targetShip.len) {
+                statusText.innerText = `WRÓG ZATOPIŁ TWÓJ STATK (${targetShip.len}-kratkowy)!`;
+                targetShip.coords.forEach(coord => {
+                   // Zamieniamy czerwone na czarne na Twojej mapie
+                   const shipDiv = document.getElementById(targetShip.id);
+                   shipDiv.classList.add('sunk');
+                });
             }
-            // Jeśli trafił, strzela znowu
-            setTimeout(cpuShoot, 1000);
+            checkGameOver();
+            if (gameActive) setTimeout(cpuAttack, 600);
         } else {
             cell.classList.add('miss');
-            statusText.innerText = "TWOJA TURA!";
-            isCpuTurn = false;
+            gameActive = true;
+            statusText.innerText = "Twoja tura!";
+        }
+    }
+
+    function checkGameOver() {
+        const playerWin = computerShips.every(s => s.hits === s.len);
+        const cpuWin = playerShips.every(s => s.hits === s.len);
+        if (playerWin || cpuWin) {
+            gameActive = false;
+            alert(playerWin ? "GRATULACJE! WYGRAŁEŚ!" : "PORAŻKA! Wróg cię zatopił.");
+            location.reload();
         }
     }
 });
