@@ -1,82 +1,86 @@
 :root {
     --deep-blue: #002147;
-    --sea-green: #2a9d8f;
+    --sand: #f4e4bc;
     --wood: #3d2b1f;
-    --parchment: #f4e4bc;
+    --danger: #e63946;
 }
 
 body {
     margin: 0;
-    padding: 0;
     font-family: 'Special Elite', cursive;
-    background: radial-gradient(circle, #1b4965 0%, #001219 100%);
-    color: var(--parchment);
-    overflow: hidden;
+    background: radial-gradient(circle, #1b4965 0%, #000 100%);
+    color: var(--sand);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
 /* Menu */
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.9);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 100;
 }
 
-.parchment-menu {
-    background: var(--parchment);
-    padding: 50px;
-    border-radius: 10px;
-    border: 8px double var(--wood);
+.parchment {
+    background: var(--sand);
+    padding: 40px;
+    border: 10px double var(--wood);
     color: var(--wood);
     text-align: center;
-    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
 }
 
-h1 { font-family: 'Pirata One', system-ui; font-size: 4rem; margin: 0; }
+h1 { font-family: 'Pirata One', cursive; font-size: 4rem; margin: 0; }
 
 button {
     background: var(--wood);
     color: white;
     border: none;
-    padding: 15px 30px;
-    font-family: 'Pirata One';
-    font-size: 1.5rem;
+    padding: 15px 25px;
+    font-size: 1.2rem;
     cursor: pointer;
-    transition: 0.3s;
-    margin: 10px;
+    font-family: 'Pirata One';
+    margin-top: 20px;
+    border-radius: 5px;
 }
 
 button:hover { background: #5c4033; transform: scale(1.05); }
 
 /* Plansze */
-.game-container { padding: 20px; display: flex; flex-direction: column; align-items: center; }
-.boards-wrapper { display: flex; gap: 50px; margin-top: 20px; }
+.hidden { display: none !important; }
+.game-container { text-align: center; }
+.ocean { display: flex; gap: 40px; margin-top: 20px; }
 
 .grid {
     display: grid;
     grid-template-columns: repeat(10, 35px);
     grid-template-rows: repeat(10, 35px);
     gap: 1px;
-    background: rgba(255,255,255,0.1);
-    border: 4px solid var(--wood);
+    background: #000;
+    border: 5px solid var(--wood);
 }
 
 .cell {
     width: 35px;
     height: 35px;
-    background: rgba(42, 157, 143, 0.3);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(42, 157, 143, 0.4);
     cursor: crosshair;
 }
 
-/* Statki i trafienia */
-.ship { background: #4a4e69 !important; border-radius: 4px; }
-.hit { background: #e63946 !important; position: relative; }
-.hit::after { content: '⚓'; display: block; text-align: center; }
-.miss { background: #a8dadc !important; opacity: 0.4; }
+.cell:hover { background: rgba(255,255,255,0.2); }
 
-.hidden-ships .ship { background: transparent !important; }
-.hidden { display: none !important; }
+/* Statusy pol */
+.ship { background: #4a4e69 !important; border: 1px solid #ccc; }
+.hit { background: var(--danger) !important; position: relative; }
+.hit::after { content: '⚓'; color: white; display: block; font-size: 20px; }
+.miss { background: #a8dadc !important; opacity: 0.5; }
+
+/* Ukrywanie statków wroga przed strzałem */
+.hidden-enemy .ship { background: transparent !important; }
