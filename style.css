@@ -1,59 +1,84 @@
 :root {
+    --water: #1565c0;
+    --wood: #5d4037;
     --sand: #f4e4bc;
-    --wood: #3d2b1f;
-    --ocean: #1b4965;
+    --dark: #1a1a1a;
 }
 
 body {
     margin: 0;
-    background: radial-gradient(circle, var(--ocean) 0%, #000 100%);
+    background: radial-gradient(circle, #2c3e50 0%, #000 100%);
     color: var(--sand);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Special Elite', cursive;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    text-align: center;
 }
 
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.95);
+    background: rgba(0,0,0,0.9);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 100;
 }
 
 .parchment {
     background: var(--sand);
-    padding: 30px;
+    padding: 50px;
     border: 8px double var(--wood);
     color: var(--wood);
-    border-radius: 10px;
+    text-align: center;
+    border-radius: 15px;
 }
 
-.hidden { display: none !important; }
+h1 { font-family: 'Pirata One'; font-size: 5rem; margin: 0; }
+
+button {
+    background: var(--wood);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-family: 'Pirata One';
+    font-size: 1.5rem;
+    cursor: pointer;
+    margin: 10px;
+    border-radius: 5px;
+}
+
+button:hover { background: #3e2723; transform: scale(1.05); }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(10, 30px);
-    grid-template-rows: repeat(10, 30px);
+    grid-template-columns: repeat(10, 35px);
+    grid-template-rows: repeat(10, 35px);
     gap: 1px;
-    background: var(--wood);
-    border: 3px solid var(--wood);
-    margin: 10px auto;
+    background: #0d47a1;
+    border: 4px solid var(--wood);
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
 .cell {
-    width: 30px;
-    height: 30px;
-    background: #2a9d8f;
-    cursor: pointer;
+    width: 35px;
+    height: 35px;
+    background: rgba(255,255,255,0.1);
+    cursor: crosshair;
 }
 
-.ship { background: #4a4e69 !important; }
-.hit { background: #e63946 !important; }
-.miss { background: #a8dadc !important; }
-.ocean-flex { display: flex; gap: 30px; justify-content: center; }
+/* WYGLĄD STATKÓW - DREWNO */
+.ship { 
+    background: var(--wood) !important; 
+    border: 1px solid #3e2723;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+}
+
+.hit { background: #c62828 !important; position: relative; }
+.hit::after { content: '🔥'; display: block; text-align: center; line-height: 35px; }
+.miss { background: #bbdefb !important; opacity: 0.4; }
+
+.hidden { display: none !important; }
+.hidden-ships .ship { background: transparent !important; }
+.ocean { display: flex; gap: 50px; flex-wrap: wrap; justify-content: center; }
