@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function initGame() {
+        playerBoard.innerHTML = '';
+        computerBoard.innerHTML = '';
         for (let i = 0; i < 100; i++) {
             const pCell = document.createElement('div');
             pCell.classList.add('cell');
@@ -36,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function genShipyard() {
+        shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
@@ -82,10 +85,15 @@ document.addEventListener('DOMContentLoaded', () => {
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
-            // POZYCJONOWANIE:
+            // POZYCJONOWANIE - OBLICZENIA W KRATKACH
             draggedShip.style.position = "absolute";
-            draggedShip.style.left = `${(startId % 10) * 40}px`;
-            draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
+            const col = startId % 10;
+            const row = Math.floor(startId / 10);
+            
+            // Każda kratka ma dokładnie 40px
+            draggedShip.style.left = (col * 40) + "px";
+            draggedShip.style.top = (row * 40) + "px";
+
             playerBoard.appendChild(draggedShip);
 
             if (playerShips.length === 6) startBattleBtn.classList.remove('hidden');
@@ -95,7 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function canPlace(id, len, vert, sId, ships) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
+            if (curr > 99) return false;
+            if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
             if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
@@ -149,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!gameActive) return;
         let idx = Math.floor(Math.random() * availableCPUShots.length);
         let id = availableCPUShots.splice(idx, 1)[0];
-        let cell = playerBoard.children[id];
+        const cell = playerBoard.children[id];
         let ship = playerShips.find(s => s.coords.includes(id));
 
         if (ship) {
