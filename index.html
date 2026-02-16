@@ -2,142 +2,47 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>CAPTAIN OF THE SEA - MEGA RPG</title>
-    <style>
-        /* --- SEKCJA 1: STYLIZACJA (CEL: 3000 LINII) --- */
-        :root {
-            --gold: #ffcc00; --wood: #3d2b1f; --parchment: #f4e1b8;
-            --btn-orange: #ff8c00; --sea-blue: #0077be;
-        }
-
-        body { 
-            background: #000; color: #3d2b1f; font-family: 'Georgia', serif; 
-            margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh;
-        }
-
-        #game-container {
-            width: 900px; height: 650px; background: var(--parchment);
-            border: 15px solid var(--wood); border-radius: 8px;
-            position: relative; overflow: hidden; box-shadow: 0 0 100px rgba(0,0,0,0.8);
-        }
-
-        /* STYL PRZYCISKÓW SWORDS AND SANDALS */
-        .btn {
-            background: linear-gradient(to bottom, #ffb347, #ff8c00);
-            border: 4px solid #4d2600; border-radius: 50px;
-            color: white; padding: 15px 30px; font-weight: bold;
-            text-transform: uppercase; cursor: pointer; text-shadow: 2px 2px #000;
-            box-shadow: 0 6px 0 #331a00; transition: 0.1s; margin: 10px;
-        }
-
-        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #331a00; }
-
-        /* SEKCJA ROZBUDOWY CSS (Tutaj możesz dopisać 3000 linii rzadkości przedmiotów) */
-        .item-rare-1 { color: blue; } .item-rare-2 { color: purple; }
-        /* [DOPISZ TUTAJ SWOJE LINIE STYLU] */
-
-        .screen { display: none; flex-direction: column; align-items: center; padding: 50px; height: 100%; }
-        .active { display: flex; }
-
-        .grid { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; background: #222; padding: 5px; }
-        .cell { width: 40px; height: 40px; background: var(--sea-blue); cursor: pointer; }
-        .cell.ship { background: #5d4037; }
-        .cell.hit { background: #ff4500; }
-        .cell.miss { background: #1a1a1a; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kapitańska Bitwa Morska</title>
+    <link rel="stylesheet" href="styl.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
-
-<div id="game-container">
-    <div id="menu" class="screen active">
-        <h1 style="font-size: 60px; margin-bottom: 50px;">CAPTAIN OF THE SEA</h1>
-        <button class="btn" onclick="show('creator')">NOWA GRA</button>
-        <button class="btn" onclick="alert('Brak zapisu!')">WCZYTAJ</button>
-    </div>
-
-    <div id="creator" class="screen">
-        <h2>STWÓRZ PIRATA</h2>
-        <input type="text" id="p-name" placeholder="Imię..." style="padding: 10px; font-size: 20px;">
-        <div style="margin: 20px;">
-            <label>Kolor płaszcza: <input type="color" id="p-color"></label>
+    <div id="main-menu" class="overlay">
+        <div class="parchment-menu">
+            <h1>Kapitańska Bitwa</h1>
+            <button onclick="startGame()">Rozpocznij Przygodę</button>
+            <div class="settings">
+                <label>Muzyka: <input type="checkbox" id="music-toggle" checked></label>
+            </div>
         </div>
-        <button class="btn" onclick="startGame()">WYRUSZ W REJS</button>
     </div>
 
-    <div id="battle" class="screen">
-        <h2 id="battle-status">BITWA MORSKA</h2>
-        <div style="display: flex; gap: 20px;">
-            <div><h3>TWÓJ OKRĘT</h3><div id="player-board" class="grid"></div></div>
-            <div><h3>WRÓG</h3><div id="enemy-board" class="grid"></div></div>
+    <div class="game-container hidden" id="game-ui">
+        <div class="header-ui">
+            <h2 id="game-status">Rozmieść swoją flotę, Kapitanie!</h2>
+            <div class="controls">
+                <button id="rotate-btn">Obróć Statek (Pion/Poziom)</button>
+                <button id="start-battle" class="hidden">Ognia! (Start)</button>
+            </div>
         </div>
-        <div id="log" style="margin-top: 20px; font-weight: bold;">Twoja tura, kapitanie!</div>
+
+        <div class="boards-wrapper">
+            <div class="board-box">
+                <h3>Twoja Mapa</h3>
+                <div id="player-board" class="grid"></div>
+            </div>
+            <div class="board-box">
+                <h3>Wody Wroga</h3>
+                <div id="computer-board" class="grid hidden-ships"></div>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-/* --- SEKCJA 2: LOGIKA GRY (TUTAJ MOŻESZ DOBIĆ DO 10 000 LINII) --- */
+    <audio id="bg-music" loop>
+        <source src="https://www.chosic.com/wp-content/uploads/2021/04/The-Black-Pearl.mp3" type="audio/mpeg">
+    </audio>
 
-let playerShips = [12, 13, 14, 45, 46, 78];
-let enemyShips = [5, 15, 25, 66, 67, 88];
-let playerHits = [];
-let enemyHits = [];
-
-function show(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-}
-
-function startGame() {
-    const name = document.getElementById('p-name').value || "Kapitan";
-    initBoard('player-board', playerShips, false);
-    initBoard('enemy-board', enemyShips, true);
-    show('battle');
-}
-
-function initBoard(id, ships, isEnemy) {
-    const board = document.getElementById(id);
-    board.innerHTML = '';
-    for(let i=0; i<100; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        if(!isEnemy && ships.includes(i)) cell.classList.add('ship');
-        if(isEnemy) cell.onclick = () => playerShoot(i, cell);
-        board.appendChild(cell);
-    }
-}
-
-function playerShoot(i, cell) {
-    if(playerHits.includes(i)) return;
-    playerHits.push(i);
-    if(enemyShips.includes(i)) {
-        cell.classList.add('hit');
-        document.getElementById('log').innerText = "TRAFIONY!";
-    } else {
-        cell.classList.add('miss');
-        document.getElementById('log').innerText = "PUDŁO! Tura wroga...";
-        setTimeout(enemyTurn, 800);
-    }
-}
-
-function enemyTurn() {
-    let shot = Math.floor(Math.random() * 100);
-    const board = document.getElementById('player-board').children[shot];
-    if(playerShips.includes(shot)) board.classList.add('hit');
-    else board.classList.add('miss');
-    document.getElementById('log').innerText = "Twoja tura!";
-}
-
-/* INSTRUKCJA OSIĄGNIĘCIA 10 000 LINII:
-   Poniżej znajduje się "Baza Danych Przedmiotów". 
-   Skopiuj poniższą linię i wklejaj ją, zmieniając tylko numer ID, aż osiągniesz 10 000 linii.
-*/
-
-const DATABASE = [
-    {id: 1, name: "Zardzewiała Szabla", damage: 5},
-    {id: 2, name: "Drewniana Noga", damage: 1},
-    // [WKLEJ TUTAJ 9500 KOLEJNYCH LINII]
-];
-
-</script>
+    <script src="skrypt.js"></script>
 </body>
 </html>
