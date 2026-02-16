@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pCell = document.createElement('div');
             pCell.classList.add('cell'); pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
+            
             const cCell = document.createElement('div');
             cCell.classList.add('cell'); cCell.dataset.id = i;
             cCell.addEventListener('click', () => playerAttack(i, cCell));
@@ -60,8 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
             ship.id = `ship-${idx}`;
-            ship.dataset.len = len; ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
+            ship.dataset.len = len; 
+            ship.dataset.vert = "false";
+            ship.style.width = `${len * 40}px`; 
+            ship.style.height = `40px`;
             ship.draggable = true;
 
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
@@ -72,14 +75,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- KLUCZOWA POPRAWKA OBROTU I POWROTU DO STOCZNI ---
     function rotateShip(ship) {
         if(gameActive) return;
+
+        // Jeśli statek jest na planszy gracza i w niego klikniemy:
         if(ship.parentElement === playerBoard) {
-            renderShipyard(); 
+            // 1. Znajdujemy jego prawidłowy slot w stoczni na podstawie ID (np. "ship-2" -> index 2)
+            const shipIndex = parseInt(ship.id.split('-')[1]);
+            const slot = shipyard.children[shipIndex];
+            
+            // 2. Resetujemy mu pozycję, żeby nie lewitował, lecz ułożył się w slocie
+            ship.style.position = "relative";
+            ship.style.left = "0px";
+            ship.style.top = "0px";
+            
+            // 3. Przenosimy ten sam element do stoczni (nie tworzymy klonów!)
+            slot.appendChild(ship);
+            
+            // 4. Usuwamy go z tablicy postawionych statków
             playerShips = playerShips.filter(s => s.id !== ship.id);
-            startBattleBtn.classList.add('hidden');
+            startBattleBtn.classList.add('hidden'); // Ukrywamy przycisk startu, bo brakuje statku
             return;
         }
+
+        // Jeśli statek jest w stoczni - obracamy go normalnie
         const isVert = ship.dataset.vert === "true";
         const len = parseInt(ship.dataset.len);
         ship.dataset.vert = !isVert;
@@ -102,9 +122,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
+            
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
             
+            // Po puszczeniu statku na planszę, pozycjonujemy go absolutnie
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${cellX * 40}px`;
             draggedShip.style.top = `${cellY * 40}px`;
