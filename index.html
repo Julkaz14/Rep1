@@ -3,60 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gra w Statki - Projekt Semestralny</title>
+    <title>Battleship Elite - Projekt</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <audio id="bg-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3"></audio>
+    <audio id="sfx-hit" src="https://actions.google.com/sounds/v1/explosions/explosion_far.ogg"></audio>
+    <audio id="sfx-miss" src="https://actions.google.com/sounds/v1/water/small_splash.ogg"></audio>
 
-    <div class="container">
-        <h1>🚢 Gra w Statki</h1>
+    <div id="main-menu" class="overlay">
+        <div class="profile-bar">
+            <div class="avatar">⚓</div>
+            <div class="player-info">
+                <span id="player-name">Kapitan Julia</span>
+                <div class="level-badge">POZIOM <span id="level-val">1</span></div>
+                <div class="xp-bar-container"><div id="xp-fill" class="xp-fill"></div></div>
+            </div>
+            <div class="currency">💰 <span id="coins-val">100</span></div>
+        </div>
+
+        <h1>BATTLESHIP ELITE</h1>
         
+        <div class="mode-select">
+            <button class="mode-card" onclick="startSetup('bot')">
+                <div class="icon">🤖</div>
+                <h3>VS BOT</h3>
+                <p>Trening z SI</p>
+            </button>
+            <button class="mode-card locked" title="Wymaga serwera (Backend)">
+                <div class="icon">🌍</div>
+                <h3>ONLINE</h3>
+                <p>Tryb Symulowany</p>
+            </button>
+        </div>
+        
+        <button id="settings-btn" onclick="toggleAudio()">🎵 Muzyka: ON/OFF</button>
+    </div>
+
+    <div id="game-screen" class="container" style="display: none;">
         <div id="setup-panel" class="setup-panel">
-            <h2>Przygotowanie do bitwy</h2>
-            <p>1. Wybierz statek. 2. Wybierz orientację. 3. Kliknij na swoją planszę, aby go postawić.</p>
-            <button id="rotate-btn" class="btn">Orientacja: Poziomo (Kliknij, aby zmienić)</button>
-            
+            <h2>ROZMIEŚĆ FLOTĘ</h2>
+            <button id="rotate-btn" class="btn">OBRÓĆ STATKI</button>
             <div class="ship-dock">
-                <div class="ship-preview" data-size="5" data-name="carrier">
-                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
-                </div>
-                <div class="ship-preview" data-size="4" data-name="battleship">
-                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
-                </div>
-                <div class="ship-preview" data-size="3" data-name="cruiser">
-                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
-                </div>
-                <div class="ship-preview" data-size="3" data-name="submarine">
-                    <div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div>
-                </div>
-                <div class="ship-preview" data-size="2" data-name="destroyer">
-                    <div class="dock-cell"></div><div class="dock-cell"></div>
-                </div>
+                <div class="ship-preview" data-size="5" data-name="carrier"><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div></div>
+                <div class="ship-preview" data-size="4" data-name="battleship"><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div></div>
+                <div class="ship-preview" data-size="3" data-name="cruiser"><div class="dock-cell"></div><div class="dock-cell"></div><div class="dock-cell"></div></div>
+                <div class="ship-preview" data-size="2" data-name="destroyer"><div class="dock-cell"></div><div class="dock-cell"></div></div>
             </div>
         </div>
 
         <div class="controls">
-            <button id="start-game-btn" class="btn" style="display: none;">ROZPOCZNIJ BITWĘ!</button>
-            <p id="message">Skonfiguruj swoją flotę powyżej.</p>
+            <button id="start-game-btn" class="btn" style="display: none;">START!</button>
+            <p id="message">Witaj na morzu!</p>
         </div>
 
         <div class="game-container">
-            <div class="board-section">
-                <h2>Twoja Plansza</h2>
-                <div id="player-board" class="board"></div>
-            </div>
-            <div class="board-section">
-                <h2>Plansza Komputera</h2>
-                <div id="computer-board" class="board"></div>
-            </div>
+            <div class="board-section"><h3>TWOJA FLOTA</h3><div id="player-board" class="board"></div></div>
+            <div class="board-section"><h3>RADAR WROGA</h3><div id="computer-board" class="board"></div></div>
         </div>
-
-        <div class="legend">
-            <p><strong>Legenda:</strong></p>
-            <span class="dot ship"></span> Twój statek 
-            <span class="dot hit"></span> Trafiony 
-            <span class="dot miss"></span> Pudło
-        </div>
+        
+        <button onclick="location.reload()" class="btn-small">Wyjdź do menu</button>
     </div>
 
     <script src="script.js"></script>
