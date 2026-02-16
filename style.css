@@ -29,12 +29,12 @@ body {
 
 h1 { font-family: 'Pirata One'; font-size: 4rem; margin: 0; }
 h3 { text-align: center; margin-bottom: 10px; font-size: 1.5rem; }
-.header { text-align: center; margin-bottom: 20px; min-height: 100px; }
+.header { text-align: center; margin-bottom: 20px; min-height: 80px; }
 
 button {
-    background: var(--wood); color: white; border: none; padding: 15px 30px;
-    font-family: 'Pirata One'; font-size: 1.5rem; cursor: pointer;
-    border-radius: 5px; transition: 0.2s;
+    background: var(--wood); color: white; border: none; padding: 12px 25px;
+    font-family: 'Pirata One'; font-size: 1.4rem; cursor: pointer;
+    border-radius: 5px; transition: 0.2s; margin-top: 10px;
 }
 button:hover { background: #3e2723; transform: scale(1.05); }
 
@@ -53,14 +53,14 @@ button:hover { background: #3e2723; transform: scale(1.05); }
 .cell {
     width: var(--cell-size);
     height: var(--cell-size);
-    border: 1px solid rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
     box-sizing: border-box;
 }
 
 .shipyard {
-    width: 250px;
+    width: 260px;
     min-height: 400px;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
     border: 2px solid var(--wood);
     display: flex;
     flex-direction: column;
@@ -69,22 +69,19 @@ button:hover { background: #3e2723; transform: scale(1.05); }
     align-items: center;
 }
 
-/* WYGLĄD STATKÓW - TERAZ BEZ LINII WEWNĘTRZNYCH */
+/* GŁADKIE STATKI BEZ LINII */
 .ship-drag {
     background: var(--wood);
     border: 2px solid #2b1d19;
     cursor: grab;
     z-index: 10;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-}
-
-.ship-drag.vertical {
-    /* Szerokość to 1 kratka, wysokość to długość * kratka */
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.6);
+    box-sizing: border-box;
 }
 
 .hit { background: #c62828 !important; position: relative; }
 .hit::after { content: '💥'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
-.miss { background: rgba(187, 222, 250, 0.5) !important; position: relative; }
+.miss { background: rgba(187, 222, 250, 0.4) !important; position: relative; }
 .miss::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: white; }
 
 .computer-grid .ship-drag { display: none !important; }
