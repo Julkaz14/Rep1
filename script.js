@@ -182,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 playSound(sndHit);
             }
-            // Sprawdzamy koniec gry PO KAŻDYM trafieniu gracza
             checkGameOver();
         } else {
             cell.classList.add('miss');
@@ -214,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 cpuHuntQueue = [];
             } else {
                 playSound(sndHit);
-                // AI planuje kolejne strzały wokół trafienia
                 [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
                     if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
                         if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
@@ -222,8 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // KLUCZOWA POPRAWKA: Sprawdzamy czy AI wygrało ZANIM strzeli kolejny raz
-            if (checkGameOver()) return; 
+            // --- KLUCZOWA POPRAWKA ---
+            // Natychmiastowe sprawdzenie czy gracz przegrał
+            const playerLost = playerShips.every(s => s.hits === s.len);
+            if (playerLost) {
+                endTheGame(false);
+                return; // Przerwij dalsze strzały AI
+            }
 
             // Jeśli gra trwa, AI strzela ponownie po krótkiej przerwie
             setTimeout(cpuAttack, 800);
@@ -235,24 +238,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Zwraca true jeśli gra się skończyła
     function checkGameOver() {
-        const playerLost = playerShips.every(s => s.hits === s.len);
         const computerLost = computerShips.every(s => s.hits === s.len);
+        const playerLost = playerShips.every(s => s.hits === s.len);
 
-        if (playerLost || computerLost) {
-            gameActive = false;
-            const msg = playerLost ? "PRZEGRANA! TWOJA FLOTA POSZŁA NA DNO." : "ZWYCIĘSTWO! WRÓG POKONANY!";
-            statusText.innerText = playerLost ? "PRZEGRANA!" : "ZWYCIĘSTWO!";
-            statusText.style.color = "#d32f2f";
-            
-            // Opóźnienie alertu, żeby gracz zobaczył ostatnie trafienie na planszy
-            setTimeout(() => {
-                alert(msg);
-                location.reload();
-            }, 500);
-            return true;
+        if (computerLost) {
+            endTheGame(true);
+        } else if (playerLost) {
+            endTheGame(false);
         }
-        return false;
+    }
+
+    function endTheGame(isWin) {
+        if (!gameActive) return;
+        gameActive = false;
+        
+        statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+        statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
+        
+        setTimeout(() => {
+            alert(isWin ? "Gratulacje Kapitanie! Wróg pokonany!" : "Twoja flota zatonęła... Przegrana.");
+            location.reload();
+        }, 600);
     }
 });
