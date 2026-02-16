@@ -3,33 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitwa Morska - Piracka Przygoda</title>
+    <title>Bitwa Morska: Piracki Los</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
+
     <div id="main-menu" class="overlay">
         <div class="parchment">
             <h1>Bitwa Morska</h1>
-            <p>Kliknij gdziekolwiek, aby poczuć morską bryzę!</p>
-            <button id="play-btn">Rozpocznij Grę</button>
+            <p>Kapitanie! Flota wroga czai się we mgle.</p>
+            <button id="play-btn">Rozpocznij Przygodę</button>
         </div>
     </div>
 
     <div class="game-container hidden" id="game-ui">
         <div class="header">
-            <h2 id="status">Kapitanie, rozmieść okręty na mapie!</h2>
+            <h2 id="status">Rozmieść statki, wilku morski!</h2>
             <button id="start-battle" class="hidden">OGNIA!</button>
         </div>
+
         <div class="ocean">
             <div class="board-box">
                 <h3>Twoja Mapa</h3>
                 <div id="player-board" class="grid"></div>
             </div>
+            
             <div class="board-box" id="shipyard-section">
                 <h3>Stocznia</h3>
                 <div class="shipyard" id="shipyard"></div>
             </div>
+
             <div class="board-box hidden" id="enemy-section">
                 <h3>Wody Wroga</h3>
                 <div id="computer-board" class="grid"></div>
