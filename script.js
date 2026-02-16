@@ -14,49 +14,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // AI MEMORY
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = []; 
 
-    // AUDIO CONTEXT (Dźwięki bez plików)
+    // Proste efekty dźwiękowe
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSound(freq, type, duration, vol) {
+    function playNote(freq, dur) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.frequency.value = freq;
+        gain.gain.value = 0.1;
         osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
     }
-
-    const startAudio = () => {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        music.volume = 0.15;
-        music.play().catch(() => {});
-    };
 
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        startAudio();
+        music.volume = 0.2; music.play().catch(() => {});
         initGame();
     });
 
     function initGame() {
-        playerBoard.innerHTML = '';
-        computerBoard.innerHTML = '';
+        playerBoard.innerHTML = ''; computerBoard.innerHTML = '';
         for (let i = 0; i < 100; i++) {
             const pCell = document.createElement('div');
-            pCell.classList.add('cell');
-            pCell.dataset.id = i;
+            pCell.classList.add('cell'); pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
-            
             const cCell = document.createElement('div');
-            cCell.classList.add('cell');
-            cCell.dataset.id = i;
+            cCell.classList.add('cell'); cCell.dataset.id = i;
             cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
@@ -69,10 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
             ship.id = `pship-${idx}`;
-            ship.dataset.len = len;
-            ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`;
-            ship.style.height = `40px`;
+            ship.dataset.len = len; ship.dataset.vert = "false";
+            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
             ship.draggable = true;
             ship.addEventListener('dragstart', () => draggedShip = ship);
             ship.addEventListener('click', () => rotateShip(ship));
@@ -88,8 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
         if (ship.parentElement === playerBoard) {
-            shipyard.appendChild(ship);
-            ship.style.position = "static";
+            shipyard.appendChild(ship); ship.style.position = "static";
             playerShips = playerShips.filter(s => s.id !== ship.id);
             startBattleBtn.classList.add('hidden');
         }
@@ -101,16 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target.classList.contains('cell') ? e.target : e.target.parentElement;
         const startId = parseInt(target.dataset.id);
         if (isNaN(startId)) return;
-        
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
-        
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-            
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
             playerBoard.appendChild(draggedShip);
@@ -132,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA!";
+        statusText.innerText = "TWOJA TURA";
         setupCPU();
     });
 
@@ -156,22 +137,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
-            cell.classList.add('hit');
-            playSound(120, 'sawtooth', 0.4, 0.2);
+            cell.classList.add('hit'); playNote(200, 0.2);
             ship.hits++;
             if (ship.hits === ship.len) {
-                playSound(300, 'sine', 1.2, 0.3);
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+                playNote(100, 0.5);
             }
             checkGameOver();
         } else {
-            cell.classList.add('miss');
-            isPlayerTurn = false;
-            setTimeout(cpuAttack, 700);
+            cell.classList.add('miss'); isPlayerTurn = false;
+            setTimeout(cpuAttack, 600);
         }
     }
 
-    // AI: HUNT & TARGET LOGIC
     function cpuAttack() {
         if (!gameActive) return;
         let shotId;
@@ -183,16 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         availableCPUShots = availableCPUShots.filter(id => id !== shotId);
-        const cells = playerBoard.querySelectorAll('.cell');
-        const cell = cells[shotId];
+        const playerCells = playerBoard.querySelectorAll('.cell');
+        const cell = playerCells[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
-            cell.classList.add('hit');
-            playSound(100, 'sawtooth', 0.5, 0.2);
+            cell.classList.add('hit'); playNote(150, 0.3);
             ship.hits++;
-            
-            // Szukaj sąsiadów
             [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
                 if (n >= 0 && n < 100 && availableCPUShots.includes(n)) {
                     if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) {
@@ -200,14 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
-
             if (ship.hits === ship.len) {
-                playSound(200, 'sine', 1, 0.3);
-                ship.coords.forEach(c => cells[c].classList.add('sunk'));
+                ship.coords.forEach(c => playerCells[c].classList.add('sunk'));
+                playNote(80, 0.6);
                 cpuHuntQueue = []; 
             }
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 700);
+            if (gameActive) setTimeout(cpuAttack, 600);
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
@@ -219,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
+            setTimeout(() => { alert(pWin ? "WYGRANA" : "PRZEGRANA"); location.reload(); }, 500);
         }
     }
 });
