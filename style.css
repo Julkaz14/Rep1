@@ -1,86 +1,171 @@
+/* --- FUNDAMENTY --- */
 :root {
     --gold: #d4af37;
+    --gold-bright: #ffdf00;
     --parchment: #f4e4bc;
-    --pirate-red: #8b0000;
+    --sand: #c2b280;
+    --wood: #3e2723;
+    --water: #00695c;
+    --dark: #1a1a1a;
 }
 
 body {
-    background: #1a1a1a;
+    background-color: var(--dark);
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    margin: 0;
-    font-family: 'Georgia', serif;
+    color: var(--parchment);
 }
 
 #game-window {
-    width: 900px;
+    width: 960px;
     height: 600px;
-    background: #3e2723;
-    border: 8px solid #5d4037;
+    background-color: var(--wood);
+    border: 10px solid #5d4037;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
     position: relative;
     overflow: hidden;
-    color: var(--parchment);
 }
 
 .screen {
     display: none;
+    width: 100%;
+    height: 100%;
     flex-direction: column;
     align-items: center;
-    padding: 40px;
-    height: 100%;
+    padding: 30px;
     box-sizing: border-box;
 }
 
 .screen.active { display: flex; }
 
-/* KREATOR */
-.avatar-preview {
-    width: 150px;
-    height: 200px;
-    background: #d7b899;
-    border: 4px solid var(--gold);
-    position: relative;
-    margin-bottom: 20px;
+/* --- MENU --- */
+.game-title {
+    font-size: 4rem;
+    color: var(--gold);
+    text-shadow: 4px 4px #000;
+    margin-bottom: 0;
 }
 
-#hair-part { height: 40px; width: 100%; position: absolute; top: 0; }
-#clothes-part { height: 100px; width: 100%; position: absolute; bottom: 0; }
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 50px;
+}
 
-.gold-btn, .menu-buttons button {
-    background: var(--gold);
-    border: 3px solid #b8860b;
-    padding: 10px 25px;
+.menu-buttons button, .gold-action-btn {
+    background: linear-gradient(to bottom, var(--gold-bright), var(--gold));
+    border: 3px solid #7d6608;
+    padding: 15px 40px;
+    font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    margin: 10px;
+    border-radius: 5px;
     transition: 0.2s;
 }
 
-.gold-btn:hover { background: #fff; }
+.menu-buttons button:hover, .gold-action-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--gold);
+}
+
+/* --- KREATOR --- */
+.creator-container {
+    display: flex;
+    gap: 40px;
+    background: rgba(0,0,0,0.4);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.avatar-preview {
+    width: 160px;
+    height: 220px;
+    background: #e0ac69;
+    border: 5px solid var(--gold);
+    position: relative;
+}
+
+#hair-part { width: 100%; height: 50px; position: absolute; top: 0; }
+#clothes-part { width: 100%; height: 110px; position: absolute; bottom: 0; }
+
+.form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+.form-group label { font-weight: bold; margin-bottom: 5px; color: var(--gold); }
+input[type="text"] { padding: 8px; background: var(--parchment); border: none; }
+
+/* --- PARGAMIN --- */
+.parchment-container {
+    background: url('https://www.transparenttextures.com/patterns/dark-matter.png');
+    padding: 20px;
+    height: 80%;
+}
 
 .parchment {
-    background: var(--parchment);
+    background-color: var(--parchment);
     color: #2b1d0e;
-    padding: 30px;
+    padding: 40px;
     border-radius: 5px;
-    box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
-    max-width: 600px;
-    text-align: center;
+    border: 2px solid #d3c4a1;
+    max-width: 700px;
+    line-height: 1.6;
+    font-size: 1.2rem;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.1);
 }
 
-/* PLANSZE */
+/* --- STATYSTYKI --- */
+.skills-box {
+    background: rgba(0,0,0,0.5);
+    padding: 20px;
+    width: 80%;
+    border-radius: 10px;
+    border: 1px solid var(--gold);
+}
+
+.skill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #444;
+}
+
+.skill-controls button {
+    background: var(--gold);
+    border: none;
+    width: 30px;
+    height: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* --- PLANSZE DO GRY --- */
 .board {
     display: grid;
-    grid-template-columns: repeat(10, 25px);
-    grid-template-rows: repeat(10, 25px);
+    grid-template-columns: repeat(10, 28px);
+    grid-template-rows: repeat(10, 28px);
     gap: 1px;
-    background: #000;
-    border: 2px solid var(--gold);
+    background-color: #222;
+    border: 3px solid var(--gold);
 }
 
-.cell { width: 25px; height: 25px; background: #00695c; cursor: pointer; }
-.cell.ship { background: #4e342e; }
-.cell.hit { background: #d32f2f; }
-.cell.miss { background: #263238; }
+.cell {
+    width: 28px;
+    height: 28px;
+    background-color: var(--water);
+    cursor: pointer;
+    border: 0.1px solid rgba(255,255,255,0.05);
+}
+
+.cell.ship { background-color: #4e342e; } /* Twoje statki */
+.cell.hit { background-color: #b71c1c !important; }
+.cell.miss { background-color: #263238 !important; }
+
+/* Ukrywanie statków wroga */
+#e-battle-board .cell.ship { background-color: var(--water); }
+
+.game-container { display: flex; gap: 40px; margin-top: 20px; }
+.battle-header { display: flex; gap: 100px; align-items: center; }
