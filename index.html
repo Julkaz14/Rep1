@@ -18,14 +18,14 @@
 
     <div class="game-container hidden" id="game-ui">
         <div class="header">
-            <h2 id="status">Przeciągnij statki na mapę. Kliknij na statek, aby go obrócić!</h2>
+            <h2 id="status">Kapitanie, rozmieść swoje okręty!</h2>
             <button id="start-battle" class="hidden">OGNIA!</button>
         </div>
 
         <div class="ocean">
             <div class="board-box">
                 <h3>Twoja Mapa</h3>
-                <div id="player-board" class="grid player-grid"></div>
+                <div id="player-board" class="grid"></div>
             </div>
             
             <div class="board-box" id="shipyard-section">
@@ -35,15 +35,10 @@
 
             <div class="board-box hidden" id="enemy-section">
                 <h3>Wody Wroga</h3>
-                <div id="computer-board" class="grid computer-grid"></div>
+                <div id="computer-board" class="grid"></div>
             </div>
         </div>
     </div>
-
-    <audio id="bg-music" loop>
-        <source src="https://www.chosic.com/wp-content/uploads/2021/04/The-Black-Pearl.mp3" type="audio/mpeg">
-    </audio>
-
     <script src="script.js"></script>
 </body>
 </html>
