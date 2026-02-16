@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Pobieranie elementów z HTML
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
     const startBattleBtn = document.getElementById('start-battle');
     const statusText = document.getElementById('status');
     const music = document.getElementById('bg-music');
+    const playBtn = document.getElementById('play-btn');
 
     const shipTypes = [5, 4, 3, 3, 2, 2];
     let playerShips = [];
@@ -14,20 +16,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    // Przycisk Start w menu
-    document.getElementById('play-btn').addEventListener('click', () => {
+    // 1. OBSŁUGA MENU I MUZYKI
+    playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         
-        // Uruchomienie muzyki po kliknięciu użytkownika
+        // Próba uruchomienia muzyki
         if (music) {
             music.volume = 0.2; // Głośność 20%
-            music.play().catch(e => console.log("Audio zablokowane:", e));
+            music.play().catch(error => {
+                console.log("Muzyka potrzebuje dodatkowego kliknięcia: ", error);
+            });
         }
         
         initGame();
     });
 
+    // 2. INICJALIZACJA PLANSZ
     function initGame() {
         playerBoard.innerHTML = '';
         computerBoard.innerHTML = '';
@@ -46,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         genShipyard();
     }
 
+    // 3. GENEROWANIE STATKÓW W STOCZNI
     function genShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
@@ -57,20 +63,24 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
             ship.draggable = true;
+            
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', () => rotateShip(ship));
             shipyard.appendChild(ship);
         });
     }
 
+    // 4. OBRACANIE STATKÓW
     function rotateShip(ship) {
         if (gameActive) return;
         const isVert = ship.dataset.vert === "true";
         const len = parseInt(ship.dataset.len);
+        
         ship.dataset.vert = !isVert;
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
-        
+
+        // Jeśli statek był na planszy, wróć go do stoczni przy obrocie
         if (ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "static";
@@ -79,10 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 5. PRZECIĄGANIE I UPUSZCZANIE (DRAG & DROP)
     playerBoard.addEventListener('dragover', e => e.preventDefault());
+
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
-        const startId = parseInt(e.target.dataset.id);
+        const targetCell = e.target;
+        const startId = parseInt(targetCell.dataset.id);
+        
         if (isNaN(startId)) return;
 
         const len = parseInt(draggedShip.dataset.len);
@@ -90,35 +104,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
-            for(let i=0; i<len; i++) coords.push(vert ? startId + i*10 : startId + i);
+            for (let i = 0; i < len; i++) {
+                coords.push(vert ? startId + i * 10 : startId + i);
+            }
+
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
-            // Idealne pozycjonowanie wewnątrz planszy
+            // POZYCJONOWANIE - Naprawa "lewitowania"
             draggedShip.style.position = "absolute";
+            draggedShip.style.margin = "0";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
+
             playerBoard.appendChild(draggedShip);
 
-            if (playerShips.length === 6) startBattleBtn.classList.remove('hidden');
+            if (playerShips.length === shipTypes.length) {
+                startBattleBtn.classList.remove('hidden');
+            }
         }
     });
 
-    function canPlace(id, len, vert, sId, ships) {
+    function canPlace(id, len, vert, sId, currentShips) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
             if (curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
-            if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
+            if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
         return true;
     }
 
+    // 6. ROZPOCZĘCIE BITWY
     startBattleBtn.addEventListener('click', () => {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA! OGNIA!";
+        statusText.innerText = "TWOJA TURA! CELUJ W MAPĘ WROGA";
         setupCPU();
     });
 
@@ -138,31 +160,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 7. MECHANIKA ATAKU
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            statusText.innerText = "TRAFIONY!";
             if (ship.hits === ship.len) {
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "KAPITANIE! STATEK WROGA ZATOPIONY!";
+                statusText.innerText = "ZATOPIŁEŚ OKRĘT WROGA!";
             }
-            checkWin();
+            checkGameOver();
         } else {
             cell.classList.add('miss');
             isPlayerTurn = false;
-            statusText.innerText = "PUDŁO! WRÓG CELUJE...";
-            setTimeout(cpuAttack, 700);
+            statusText.innerText = "PUDŁO! WRÓG PRZYGOTOWUJE SALWĘ...";
+            setTimeout(cpuAttack, 800);
         }
     }
 
     function cpuAttack() {
         if (!gameActive) return;
-        let idx = Math.floor(Math.random() * availableCPUShots.length);
-        let id = availableCPUShots.splice(idx, 1)[0];
-        const cell = playerBoard.children[id];
-        let ship = playerShips.find(s => s.coords.includes(id));
+        const index = Math.floor(Math.random() * availableCPUShots.length);
+        const shotId = availableCPUShots.splice(index, 1)[0];
+        const cell = playerBoard.children[shotId];
+        let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
             cell.classList.add('hit');
@@ -170,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ship.hits === ship.len) {
                 ship.coords.forEach(c => playerBoard.children[c].classList.add('sunk'));
             }
-            checkWin();
-            if (gameActive) setTimeout(cpuAttack, 700);
+            checkGameOver();
+            if (gameActive) setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
@@ -179,14 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function checkWin() {
+    function checkGameOver() {
         const pWin = computerShips.every(s => s.hits === s.len);
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { 
-                alert(pWin ? "ZWYCIĘSTWO! Morze należy do Ciebie!" : "PORAŻKA! Twoja flota zatonęła..."); 
-                location.reload(); 
+            setTimeout(() => {
+                alert(pWin ? "ZWYCIĘSTWO! Morze jest wolne!" : "PORAŻKA! Twoja flota spoczęła na dnie...");
+                location.reload();
             }, 500);
         }
     }
