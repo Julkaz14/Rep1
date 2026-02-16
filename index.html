@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitwa Morska: Piracka Przygoda</title>
+    <title>Kapitańska Bitwa Morska</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
@@ -11,31 +11,29 @@
     <div id="main-menu" class="overlay">
         <div class="parchment">
             <h1>Kapitańska Bitwa</h1>
-            <p>Rozmieść flotę i zatop wroga!</p>
-            <button id="play-btn">Rozpocznij Przygodę</button>
-            <div class="music-note" style="margin-top:10px; font-size: 0.8em; opacity: 0.7;">
-                Muzyka włączy się po kliknięciu przycisku
-            </div>
+            <p>Zatop flotę wroga i przejmij złoto!</p>
+            <button id="play-btn">Wypłyń w rejs</button>
         </div>
     </div>
 
     <div class="game-container hidden" id="game-ui">
-        <div class="status-bar">
-            <h2 id="status">Kapitanie, rozmieść statki (klikaj na swoją mapę)!</h2>
-            <div class="actions">
-                <button id="rotate-btn">Zmień orientację (Poziom)</button>
+        <div class="header">
+            <h2 id="status">Kapitanie, rozmieść swoje okręty!</h2>
+            <div class="controls">
+                <button id="rotate-btn">Obróć (Poziom)</button>
                 <button id="start-battle" class="hidden">OGNIA!</button>
             </div>
         </div>
 
         <div class="ocean">
-            <div class="board-wrapper">
+            <div class="board-box">
                 <h3>Twoja Mapa</h3>
                 <div id="player-board" class="grid"></div>
             </div>
-            <div class="board-wrapper">
+            
+            <div class="board-box hidden" id="enemy-section">
                 <h3>Wody Wroga</h3>
-                <div id="computer-board" class="grid hidden-enemy"></div>
+                <div id="computer-board" class="grid hidden-ships"></div>
             </div>
         </div>
     </div>
