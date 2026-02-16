@@ -135,13 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.hits++;
             if (ship.hits === ship.len) {
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
-                statusText.innerText = "ZATOPIONY!";
+                statusText.innerText = "KAPITANIE! STATEK WROGA ZATOPIONY!";
             }
             checkWin();
         } else {
             cell.classList.add('miss');
             isPlayerTurn = false;
-            statusText.innerText = "RUCH WROGA";
+            statusText.innerText = "PUDŁO! RUCH WROGA";
             setTimeout(cpuAttack, 700);
         }
     }
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             cell.classList.add('miss');
             isPlayerTurn = true;
-            statusText.innerText = "TWOJA TURA";
+            statusText.innerText = "TWOJA TURA, KAPITANIE!";
         }
     }
 
