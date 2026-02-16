@@ -1,104 +1,86 @@
 :root {
-    --primary: #00d2ff;
-    --secondary: #3a7bd5;
-    --gold: #FFD700;
+    --gold: #d4af37;
+    --parchment: #f4e4bc;
+    --pirate-red: #8b0000;
 }
 
 body {
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #001f3f 0%, #004a8c 100%);
-    color: white;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
     margin: 0;
-    overflow-x: hidden;
+    font-family: 'Georgia', serif;
 }
 
-/* --- MENU GŁÓWNE --- */
-.overlay {
-    height: 100vh;
-    display: flex;
+#game-window {
+    width: 900px;
+    height: 600px;
+    background: #3e2723;
+    border: 8px solid #5d4037;
+    position: relative;
+    overflow: hidden;
+    color: var(--parchment);
+}
+
+.screen {
+    display: none;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    background: url('https://www.transparenttextures.com/patterns/dark-matter.png');
-}
-
-.profile-bar {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    display: flex;
-    align-items: center;
-    background: rgba(0,0,0,0.6);
-    padding: 10px 20px;
-    border-radius: 50px;
-    border: 1px solid var(--primary);
-}
-
-.avatar { font-size: 2rem; margin-right: 15px; }
-.xp-bar-container {
-    width: 150px;
-    height: 10px;
-    background: #333;
-    border-radius: 5px;
-    margin-top: 5px;
-}
-.xp-fill {
-    width: 30%; /* Dynamiczne */
+    padding: 40px;
     height: 100%;
-    background: var(--primary);
-    border-radius: 5px;
-    transition: width 0.5s;
+    box-sizing: border-box;
 }
 
-.mode-select {
-    display: flex;
-    gap: 20px;
-    margin-top: 50px;
+.screen.active { display: flex; }
+
+/* KREATOR */
+.avatar-preview {
+    width: 150px;
+    height: 200px;
+    background: #d7b899;
+    border: 4px solid var(--gold);
+    position: relative;
+    margin-bottom: 20px;
 }
 
-.mode-card {
-    background: rgba(255,255,255,0.1);
-    border: 2px solid var(--primary);
-    border-radius: 20px;
-    padding: 30px;
-    width: 180px;
-    cursor: pointer;
-    transition: 0.3s;
-    color: white;
-}
+#hair-part { height: 40px; width: 100%; position: absolute; top: 0; }
+#clothes-part { height: 100px; width: 100%; position: absolute; bottom: 0; }
 
-.mode-card:hover { transform: translateY(-10px); background: rgba(0,210,255,0.2); }
-.mode-card.locked { opacity: 0.5; cursor: not-allowed; border-color: #555; }
-
-/* --- GRA --- */
-.container { text-align: center; padding: 20px; }
-.board { 
-    display: grid; 
-    grid-template-columns: repeat(10, 30px); 
-    background: rgba(0,0,0,0.5); 
-    border: 2px solid var(--primary);
-}
-
-.cell { width: 30px; height: 30px; border: 0.1px solid rgba(255,255,255,0.1); cursor: pointer; }
-.cell.ship { background: #555; border-radius: 4px; }
-#computer-board .cell.ship { background: transparent; } /* Ukryte */
-
-.cell.hit { background: #ff4136 !important; animation: shake 0.2s; }
-.cell.miss { background: #ffffff33 !important; }
-
-@keyframes shake {
-    0% { transform: translate(1px, 1px); }
-    100% { transform: translate(0, 0); }
-}
-
-.btn {
+.gold-btn, .menu-buttons button {
     background: var(--gold);
-    color: #000;
+    border: 3px solid #b8860b;
+    padding: 10px 25px;
     font-weight: bold;
-    padding: 15px 30px;
-    border-radius: 10px;
-    border: none;
     cursor: pointer;
+    margin: 10px;
+    transition: 0.2s;
 }
 
-.currency { margin-left: 20px; font-weight: bold; color: var(--gold); }
+.gold-btn:hover { background: #fff; }
+
+.parchment {
+    background: var(--parchment);
+    color: #2b1d0e;
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+    max-width: 600px;
+    text-align: center;
+}
+
+/* PLANSZE */
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 25px);
+    grid-template-rows: repeat(10, 25px);
+    gap: 1px;
+    background: #000;
+    border: 2px solid var(--gold);
+}
+
+.cell { width: 25px; height: 25px; background: #00695c; cursor: pointer; }
+.cell.ship { background: #4e342e; }
+.cell.hit { background: #d32f2f; }
+.cell.miss { background: #263238; }
