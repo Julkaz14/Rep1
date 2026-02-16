@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shipyard = document.getElementById('shipyard');
     const startBattleBtn = document.getElementById('start-battle');
     const statusText = document.getElementById('status');
+    const music = document.getElementById('bg-music');
 
     const shipTypes = [5, 4, 3, 3, 2, 2];
     let playerShips = [];
@@ -13,9 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
+    // Przycisk Start w menu
     document.getElementById('play-btn').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
+        
+        // Uruchomienie muzyki po kliknięciu użytkownika
+        if (music) {
+            music.volume = 0.2; // Głośność 20%
+            music.play().catch(e => console.log("Audio zablokowane:", e));
+        }
+        
         initGame();
     });
 
@@ -61,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ship.dataset.vert = !isVert;
         ship.style.width = !isVert ? "40px" : `${len * 40}px`;
         ship.style.height = !isVert ? `${len * 40}px` : "40px";
+        
         if (ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "static";
@@ -84,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
 
+            // Idealne pozycjonowanie wewnątrz planszy
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${(startId % 10) * 40}px`;
             draggedShip.style.top = `${Math.floor(startId / 10) * 40}px`;
@@ -107,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA";
+        statusText.innerText = "TWOJA TURA! OGNIA!";
         setupCPU();
     });
 
@@ -141,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             cell.classList.add('miss');
             isPlayerTurn = false;
-            statusText.innerText = "PUDŁO! RUCH WROGA";
+            statusText.innerText = "PUDŁO! WRÓG CELUJE...";
             setTimeout(cpuAttack, 700);
         }
     }
@@ -173,7 +184,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { alert(pWin ? "Wygrałeś!" : "Przegrałeś!"); location.reload(); }, 500);
+            setTimeout(() => { 
+                alert(pWin ? "ZWYCIĘSTWO! Morze należy do Ciebie!" : "PORAŻKA! Twoja flota zatonęła..."); 
+                location.reload(); 
+            }, 500);
         }
     }
 });
