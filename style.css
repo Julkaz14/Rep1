@@ -13,12 +13,11 @@ body {
     align-items: center;
     height: 100vh;
     font-family: 'Special Elite', cursive;
-    color: #333;
 }
 
 .hidden { display: none !important; }
 
-/* STYL ZE ZDJĘCIA */
+/* Styl menu ze zdjęcia */
 .overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.9);
@@ -28,43 +27,22 @@ body {
 
 .menu-box {
     background: var(--parchment);
-    padding: 40px 60px;
+    padding: 40px;
     border: 2px solid #8b5a2b;
-    border-radius: 5px;
     text-align: center;
     box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
 
-.menu-box h1 {
-    font-family: 'Pirata One', cursive;
-    font-size: 4rem;
-    margin: 0;
-    color: #4a3728;
-}
+.menu-box h1 { font-family: 'Pirata One'; font-size: 3.5rem; margin: 0; color: #4a3728; }
 
-.menu-box p { font-size: 1.2rem; margin: 15px 0; }
-
-.menu-box button, #start-battle {
-    background: #6d5e54;
-    color: white;
-    border: none;
-    padding: 10px 30px;
-    font-size: 1.4rem;
-    font-family: 'Pirata One', cursive;
-    cursor: pointer;
-    border-radius: 3px;
-}
-
-.menu-box button:hover { background: #4a3728; }
-
-/* KONTENER GRY */
+/* Kontener gry */
 .game-container {
     background: var(--parchment);
     padding: 20px;
     border-radius: 5px;
 }
 
-.battlefield { display: flex; gap: 30px; align-items: flex-start; }
+.battlefield { display: flex; gap: 40px; align-items: flex-start; }
 
 .grid {
     display: grid;
@@ -73,45 +51,46 @@ body {
     background: var(--ocean);
     border: 3px solid #333;
     position: relative;
+    width: 400px;
+    height: 400px;
 }
 
 .cell {
     width: 40px; height: 40px;
     border: 1px solid rgba(255,255,255,0.1);
-    position: relative;
 }
 
-/* STATKI I TRAFIENIA */
+/* POPRAWIONA STOCZNIA */
+.shipyard {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Odstępy między statkami */
+    padding: 10px;
+    background: rgba(0,0,0,0.05);
+    min-width: 220px;
+}
+
 .ship-drag {
     background: var(--wood);
-    border: 1px solid #000;
-    position: absolute;
-    z-index: 10;
+    border: 2px solid #2b1d19;
     cursor: grab;
+    /* Resetujemy pozycję dla stoczni */
+    position: relative; 
+    display: block;
 }
 
-/* Nakładki trafień - MUSZĄ BYĆ NAD STATKIEM */
-.hit::after, .miss::after, .sunk::after {
+/* Efekty trafień na wierzchu */
+.hit::after, .sunk::after, .miss::after {
     content: '';
     position: absolute; inset: 0;
     z-index: 100;
     display: flex; justify-content: center; align-items: center;
 }
+.hit::after { background: rgba(255,0,0,0.5); content: '💥'; }
+.sunk::after { background: rgba(0,0,0,0.8); content: '💀'; }
+.miss::after { content: '•'; color: white; font-size: 20px; }
 
-.hit::after {
-    background: rgba(255, 0, 0, 0.5);
-    content: '💥';
-}
-
-.sunk::after {
-    background: rgba(0, 0, 0, 0.8);
-    content: '💀';
-}
-
-.miss::after { content: '•'; color: white; font-size: 24px; }
-
-.shipyard {
-    display: flex; flex-direction: column; gap: 10px;
-    min-width: 200px; min-height: 400px;
-    background: rgba(0,0,0,0.05); padding: 10px;
+#start-battle, #play-btn {
+    background: #6d5e54; color: white; border: none;
+    padding: 10px 20px; font-family: 'Pirata One'; font-size: 1.2rem; cursor: pointer;
 }
