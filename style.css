@@ -1,89 +1,113 @@
 :root {
-    --water: #006994;
-    --wood: #5d4037;
     --parchment: #f4e4bc;
+    --wood: #5d4037;
+    --ocean: #2e5a88;
     --cell-size: 40px;
 }
 
 body {
-    margin: 0;
-    background: #0d1b2a;
-    color: white;
+    background: #222;
     font-family: 'Special Elite', cursive;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
+    color: #333;
 }
 
-/* STARY STYL MENU - PERGAMIN */
 .overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-    display: flex; justify-content: center; align-items: center; z-index: 100;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
 .parchment {
     background: var(--parchment);
-    padding: 60px;
-    border: 15px double var(--wood);
-    color: var(--wood);
-    text-align: center;
+    padding: 40px;
     border-radius: 5px;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    text-align: center;
+    border: 2px solid #8b5a2b;
+    max-width: 400px;
 }
 
-h1 { font-family: 'Pirata One'; font-size: 5rem; margin: 0; text-transform: uppercase; }
-
-/* UKŁAD GRY */
-.ocean {
-    display: flex;
-    flex-direction: row; /* Stocznia obok planszy */
-    align-items: flex-start;
-    gap: 40px;
-    padding: 20px;
-}
-
-.grid {
-    display: grid; 
-    grid-template-columns: repeat(10, var(--cell-size));
-    grid-template-rows: repeat(10, var(--cell-size));
-    background: var(--water); 
-    border: 5px solid var(--wood);
-    position: relative; 
-    width: 400px;
-    height: 400px;
-}
-
-.cell { width: var(--cell-size); height: var(--cell-size); border: 1px solid rgba(255,255,255,0.1); position: relative; }
-
-/* TRAFIENIA I ZATOPIENIA */
-.hit { background: #c62828 !important; }
-.hit::after { content: '💥'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
-
-.sunk { background: #000 !important; border: 1px solid #333 !important; }
-.sunk::after { content: '💀' !important; font-size: 18px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
-.miss { background: rgba(255,255,255,0.2) !important; }
-.miss::after { content: '•'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; }
-
-/* STOCZNIA */
-.shipyard {
-    width: 240px; 
-    min-height: 400px; 
-    background: rgba(0,0,0,0.3);
-    border: 2px solid var(--wood); 
-    display: flex; 
-    flex-direction: column; 
-    gap: 15px; 
-    padding: 15px;
-    align-items: center;
-}
-
-.ship-drag { background: var(--wood); border: 1px solid #2b1d19; cursor: grab; z-index: 10; }
-.hidden { display: none !important; }
+h1 { font-family: 'Pirata One', system-ui; font-size: 3rem; margin: 0; color: #5d4037; }
 
 button {
-    background: var(--wood); color: white; border: none; padding: 15px 30px;
-    font-family: 'Pirata One'; font-size: 1.8rem; cursor: pointer;
+    background: #8b5a2b;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    font-family: 'Pirata One', cursive;
+    margin-top: 20px;
 }
-button:hover { background: #3e2723; }
+
+button:hover { background: #5d4037; }
+
+.hidden { display: none !important; }
+
+.game-container {
+    background: var(--parchment);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.ocean { display: flex; gap: 40px; align-items: flex-start; margin-top: 20px; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(10, var(--cell-size));
+    grid-template-rows: repeat(10, var(--cell-size));
+    background: var(--ocean);
+    border: 5px solid #3e2723;
+    position: relative; /* Ważne dla statków absolute */
+}
+
+.cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* EFEKTY NAD STATKIEM */
+.hit::after, .miss::after, .sunk::after {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200; /* Wyżej niż statki */
+    pointer-events: none;
+}
+
+.hit { background: #d32f2f !important; }
+.hit::after { content: '💥'; font-size: 24px; }
+
+.miss::after { content: '•'; color: white; font-size: 30px; }
+
+.sunk { background: #1a1a1a !important; }
+.sunk::after { content: '💀'; font-size: 20px; }
+
+.ship-drag {
+    background: #5d4037;
+    border: 2px solid #2b1d19;
+    cursor: grab;
+    z-index: 50;
+    position: absolute;
+    transition: transform 0.1s;
+}
+
+.shipyard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+}
