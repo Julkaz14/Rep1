@@ -14,14 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = [];
 
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.2; music.play().catch(()=> {});
+        music.volume = 0.15; music.play().catch(() => {});
         initGame();
     });
 
@@ -31,49 +30,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const pCell = document.createElement('div');
             pCell.classList.add('cell'); pCell.dataset.id = i;
             playerBoard.appendChild(pCell);
+            
             const cCell = document.createElement('div');
             cCell.classList.add('cell'); cCell.dataset.id = i;
             cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
-        createShipyard();
+        renderShipyard();
     }
 
-    function createShipyard() {
+    function renderShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
-            const shipContainer = document.createElement('div');
-            shipContainer.style.minHeight = "40px"; // Miejsce na statek w stoczni
-
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
             ship.id = `ship-${idx}`;
-            ship.dataset.len = len; 
+            ship.dataset.len = len;
             ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`; 
+            ship.style.width = `${len * 40}px`;
             ship.style.height = `40px`;
             ship.draggable = true;
 
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', () => rotateShip(ship));
-
-            shipContainer.appendChild(ship);
-            shipyard.appendChild(shipContainer);
+            shipyard.appendChild(ship);
         });
     }
 
     function rotateShip(ship) {
         if(gameActive) return;
         
-        // Jeśli statek jest na planszy, cofnij go do stoczni przed obrotem
+        // Jeśli statek był na planszy, wraca do stoczni
         if(ship.parentElement === playerBoard) {
             shipyard.appendChild(ship);
             ship.style.position = "relative";
-            ship.style.left = "0";
-            ship.style.top = "0";
+            ship.style.left = "0"; ship.style.top = "0";
             playerShips = playerShips.filter(s => s.id !== ship.id);
             startBattleBtn.classList.add('hidden');
-            statusText.innerText = "Obrócono i cofnięto do stoczni";
         }
 
         const isVert = ship.dataset.vert === "true";
@@ -94,10 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
         const rect = playerBoard.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const cellX = Math.floor(x / 40);
-        const cellY = Math.floor(y / 40);
+        const cellX = Math.floor((e.clientX - rect.left) / 40);
+        const cellY = Math.floor((e.clientY - rect.top) / 40);
         const startId = cellY * 10 + cellX;
 
         if (startId < 0 || startId > 99) return;
@@ -118,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
             playerBoard.appendChild(draggedShip);
             
             if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
-            statusText.innerText = "Kapitanie, flota gotowa?";
         }
     });
 
@@ -136,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
-        statusText.innerText = "TWOJA TURA";
+        updateStatus();
         setupCPU();
     });
 
@@ -156,8 +146,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- LOGIKA ZMIANY NAPISÓW ---
+    function updateStatus() {
+        if (!gameActive) return;
+        if (isPlayerTurn) {
+            statusText.innerText = "TWÓJ RUCH";
+            statusText.style.color = "#2e5a88";
+        } else {
+            statusText.innerText = "RUCH PRZECIWNIKA...";
+            statusText.style.color = "#d32f2f";
+        }
+    }
+
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit');
@@ -167,8 +170,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             checkGameOver();
         } else {
-            cell.classList.add('miss'); isPlayerTurn = false;
-            setTimeout(cpuAttack, 600);
+            cell.classList.add('miss');
+            isPlayerTurn = false;
+            updateStatus();
+            setTimeout(cpuAttack, 1000);
         }
     }
 
@@ -176,9 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!gameActive) return;
         let shotId;
         if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
-        else shotId = availableCPUShots.splice(Math.floor(Math.random()*availableCPUShots.length), 1)[0];
+        else shotId = availableCPUShots.splice(Math.floor(Math.random() * availableCPUShots.length), 1)[0];
 
-        availableCPUShots = availableCPUShots.filter(id => id !== shotId);
         const cells = playerBoard.querySelectorAll('.cell');
         const cell = cells[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
@@ -187,8 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.classList.add('hit');
             ship.hits++;
             [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
-                if (n>=0 && n<100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
-                    if (Math.abs((n%10)-(shotId%10)) <=1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
+                if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
+                    if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
                 }
             });
             if (ship.hits === ship.len) {
@@ -196,9 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 cpuHuntQueue = [];
             }
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 600);
+            if (gameActive) setTimeout(cpuAttack, 1000);
         } else {
-            cell.classList.add('miss'); isPlayerTurn = true;
+            cell.classList.add('miss');
+            isPlayerTurn = true;
+            updateStatus();
         }
     }
 
@@ -207,7 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const cWin = playerShips.every(s => s.hits === s.len);
         if (pWin || cWin) {
             gameActive = false;
-            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
+            statusText.innerText = pWin ? "WYGRAŁEŚ!" : "PRZEGRAŁEŚ!";
+            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 1000);
         }
     }
 });
