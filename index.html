@@ -10,30 +10,33 @@
 <body>
     <div id="main-menu" class="overlay">
         <div class="parchment">
-            <h1>Kapitańska Bitwa</h1>
-            <p>Zatop flotę wroga i przejmij złoto!</p>
-            <button id="play-btn">Wypłyń w rejs</button>
+            <h1>Bitwa Morska Pro</h1>
+            <p>Ustaw swoją flotę i zniszcz przeciwnika!</p>
+            <button id="play-btn">Rozpocznij Grę</button>
         </div>
     </div>
 
     <div class="game-container hidden" id="game-ui">
         <div class="header">
-            <h2 id="status">Kapitanie, rozmieść swoje okręty!</h2>
-            <div class="controls">
-                <button id="rotate-btn">Obróć (Poziom)</button>
-                <button id="start-battle" class="hidden">OGNIA!</button>
-            </div>
+            <h2 id="status">Przeciągnij statki ze stoczni na mapę. Kliknij na statek, aby go obrócić!</h2>
+            <button id="start-battle" class="hidden">OGNIA! Rozpocznij Bitwę!</button>
         </div>
 
         <div class="ocean">
             <div class="board-box">
                 <h3>Twoja Mapa</h3>
-                <div id="player-board" class="grid"></div>
+                <div id="player-board" class="grid player-grid"></div>
             </div>
             
+            <div class="board-box" id="shipyard-section">
+                <h3>Stocznia (Twoje statki)</h3>
+                <div class="shipyard" id="shipyard">
+                    </div>
+            </div>
+
             <div class="board-box hidden" id="enemy-section">
                 <h3>Wody Wroga</h3>
-                <div id="computer-board" class="grid hidden-ships"></div>
+                <div id="computer-board" class="grid computer-grid"></div>
             </div>
         </div>
     </div>
