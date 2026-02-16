@@ -1,126 +1,135 @@
-const playerBoard = document.getElementById('player-board');
-const computerBoard = document.getElementById('computer-board');
-const rotateBtn = document.getElementById('rotate-btn');
-const startBattleBtn = document.getElementById('start-battle');
-const statusText = document.getElementById('game-status');
-const music = document.getElementById('bg-music');
+document.addEventListener('DOMContentLoaded', () => {
+    const playerBoard = document.getElementById('player-board');
+    const computerBoard = document.getElementById('computer-board');
+    const playBtn = document.getElementById('play-btn');
+    const rotateBtn = document.getElementById('rotate-btn');
+    const startBattleBtn = document.getElementById('start-battle');
+    const statusText = document.getElementById('status');
+    const music = document.getElementById('bg-music');
 
-let isHorizontal = true;
-let currentShipIndex = 0;
-const shipSizes = [4, 3, 3, 2, 2, 1, 1]; // Rozmiary statków do ustawienia
-let playerShipsCoords = [];
-let computerShipsCoords = [];
+    let isHorizontal = true;
+    let shipsPlaced = 0;
+    const shipSizes = [4, 3, 3, 2, 2, 1, 1]; // Zestaw statków
+    let playerShips = [];
+    let computerShips = [];
+    let gameActive = false;
 
-// Inicjalizacja gry
-function startGame() {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('game-ui').classList.remove('hidden');
-    if (document.getElementById('music-toggle').checked) music.play();
-    initBoards();
-}
-
-function initBoards() {
-    for (let i = 0; i < 100; i++) {
-        const pCell = document.createElement('div');
-        pCell.classList.add('cell');
-        pCell.dataset.index = i;
-        pCell.addEventListener('click', () => handlePlacement(i));
-        playerBoard.appendChild(pCell);
-
-        const cCell = document.createElement('div');
-        cCell.classList.add('cell');
-        cCell.dataset.index = i;
-        cCell.addEventListener('click', () => playerAttack(i));
-        computerBoard.appendChild(cCell);
-    }
-}
-
-rotateBtn.addEventListener('click', () => isHorizontal = !isHorizontal);
-
-// Logika rozmieszczania
-function handlePlacement(startIndex) {
-    if (currentShipIndex >= shipSizes.length) return;
-
-    const size = shipSizes[currentShipIndex];
-    const coords = [];
-    const row = Math.floor(startIndex / 10);
-    const col = startIndex % 10;
-
-    // Sprawdzanie czy statek mieści się na planszy
-    for (let i = 0; i < size; i++) {
-        let nextIndex = isHorizontal ? startIndex + i : startIndex + i * 10;
-        let nextRow = Math.floor(nextIndex / 10);
-        let nextCol = nextIndex % 10;
-
-        if (nextIndex >= 100 || (isHorizontal && nextRow !== row) || playerShipsCoords.flat().includes(nextIndex)) {
-            alert("Nie możesz tu postawić statku!");
-            return;
-        }
-        coords.push(nextIndex);
-    }
-
-    coords.forEach(idx => {
-        playerBoard.children[idx].classList.add('ship');
+    // Inicjalizacja menu
+    playBtn.addEventListener('click', () => {
+        document.getElementById('main-menu').classList.add('hidden');
+        document.getElementById('game-ui').classList.remove('hidden');
+        music.play().catch(e => console.log("Cisza na pokładzie (wymagana interakcja)"));
     });
-    playerShipsCoords.push(coords);
-    currentShipIndex++;
 
-    if (currentShipIndex === shipSizes.length) {
-        rotateBtn.classList.add('hidden');
-        startBattleBtn.classList.remove('hidden');
-        statusText.innerText = "Flota gotowa! Ruszaj do walki!";
+    // Tworzenie pól
+    function createGrid(container, isPlayer) {
+        for (let i = 0; i < 100; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            if (isPlayer) {
+                cell.addEventListener('click', () => placeShip(i));
+            } else {
+                cell.addEventListener('click', () => playerAttack(i));
+            }
+            container.appendChild(cell);
+        }
     }
-}
 
-// Start bitwy
-startBattleBtn.addEventListener('click', () => {
-    startBattleBtn.classList.add('hidden');
-    computerBoard.parentElement.classList.remove('hidden-ships'); // Pokazuje planszę wroga (ale nie statki)
-    statusText.innerText = "Twój ruch! Zaatakuj Wody Wroga.";
-    setupComputerShips();
-});
+    rotateBtn.addEventListener('click', () => {
+        isHorizontal = !isHorizontal;
+        rotateBtn.innerText = `Zmień orientację (${isHorizontal ? 'Poziom' : 'Pion'})`;
+    });
 
-function setupComputerShips() {
-    // Proste losowanie dla komputera
-    shipSizes.forEach(size => {
-        let placed = false;
-        while (!placed) {
+    function placeShip(idx) {
+        if (shipsPlaced >= shipSizes.length) return;
+        
+        const size = shipSizes[shipsPlaced];
+        const coords = [];
+        const row = Math.floor(idx / 10);
+        const col = idx % 10;
+
+        for (let i = 0; i < size; i++) {
+            let nextIdx = isHorizontal ? idx + i : idx + (i * 10);
+            let nextRow = Math.floor(nextIdx / 10);
+            
+            if (nextIdx >= 100 || (isHorizontal && nextRow !== row) || playerShips.includes(nextIdx)) {
+                alert("Nie zmieścisz tu statku!");
+                return;
+            }
+            coords.push(nextIdx);
+        }
+
+        coords.forEach(c => {
+            playerShips.push(c);
+            playerBoard.children[c].classList.add('ship');
+        });
+
+        shipsPlaced++;
+        if (shipsPlaced === shipSizes.length) {
+            rotateBtn.classList.add('hidden');
+            startBattleBtn.classList.remove('hidden');
+            statusText.innerText = "Flota gotowa! Kliknij OGNIA!";
+        }
+    }
+
+    startBattleBtn.addEventListener('click', () => {
+        gameActive = true;
+        startBattleBtn.classList.add('hidden');
+        statusText.innerText = "BITWA! Atakuj wody wroga!";
+        setupComputer();
+    });
+
+    function setupComputer() {
+        while (computerShips.length < playerShips.length) {
             let rand = Math.floor(Math.random() * 100);
-            let horiz = Math.random() > 0.5;
-            let tempCoords = [];
-            // Tu powinna być logika sprawdzająca kolizje (uproszczona dla czytelności)
-            if (!computerShipsCoords.flat().includes(rand)) {
-                computerShipsCoords.push([rand]); // Uproszczenie: tylko 1-masztowce dla AI w demo
+            if (!computerShips.includes(rand)) {
+                computerShips.push(rand);
                 computerBoard.children[rand].classList.add('ship');
-                placed = true;
             }
         }
-    });
-}
-
-function playerAttack(index) {
-    if (computerBoard.children[index].classList.contains('hit') || computerBoard.children[index].classList.contains('miss')) return;
-
-    if (computerShipsCoords.flat().includes(index)) {
-        computerBoard.children[index].classList.add('hit');
-        statusText.innerText = "Trafiony! Strzelaj ponownie.";
-    } else {
-        computerBoard.children[index].classList.add('miss');
-        statusText.innerText = "Pudło! Komputer strzela...";
-        setTimeout(computerAttack, 800);
-    }
-}
-
-function computerAttack() {
-    let rand = Math.floor(Math.random() * 100);
-    while(playerBoard.children[rand].classList.contains('hit') || playerBoard.children[rand].classList.contains('miss')) {
-        rand = Math.floor(Math.random() * 100);
     }
 
-    if (playerShipsCoords.flat().includes(rand)) {
-        playerBoard.children[rand].classList.add('hit');
-        setTimeout(computerAttack, 800);
-    } else {
-        playerBoard.children[rand].classList.add('miss');
+    function playerAttack(idx) {
+        if (!gameActive || computerBoard.children[idx].classList.contains('hit') || computerBoard.children[idx].classList.contains('miss')) return;
+
+        if (computerShips.includes(idx)) {
+            computerBoard.children[idx].classList.add('hit');
+            if (checkWin(computerBoard, computerShips.length)) {
+                alert("ZWYCIĘSTWO! Skarby są Twoje!");
+                location.reload();
+            }
+        } else {
+            computerBoard.children[idx].classList.add('miss');
+            gameActive = false; // Blokada tury gracza
+            setTimeout(computerTurn, 600);
+        }
     }
-}
+
+    function computerTurn() {
+        let rand;
+        do {
+            rand = Math.floor(Math.random() * 100);
+        } while (playerBoard.children[rand].classList.contains('hit') || playerBoard.children[rand].classList.contains('miss'));
+
+        if (playerShips.includes(rand)) {
+            playerBoard.children[rand].classList.add('hit');
+            if (checkWin(playerBoard, playerShips.length)) {
+                alert("KLĘSKA! Twój okręt zatonął...");
+                location.reload();
+            }
+            setTimeout(computerTurn, 600);
+        } else {
+            playerBoard.children[rand].classList.add('miss');
+            gameActive = true;
+        }
+    }
+
+    function checkWin(board, totalShips) {
+        const hits = board.querySelectorAll('.hit').length;
+        return hits === totalShips;
+    }
+
+    createGrid(playerBoard, true);
+    createGrid(computerBoard, false);
+});
