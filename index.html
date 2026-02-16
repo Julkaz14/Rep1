@@ -1,297 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAPTAIN OF THE SEA - ULTIMATE RPG EDITION</title>
-    <style>
-        /* --- [CSS SECTION: 0 - 1500 lines potential] --- */
-        :root {
-            --gold: #ffcc00; --gold-dark: #b8860b; --wood: #2b1d0e;
-            --btn-orange: #ff7b00; --btn-border: #661a00; --parchment: #f4e1b8;
-        }
-
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Georgia', serif; }
-
-        /* GIGANTYCZNE TŁO ANIMOWANE */
-        #game-window {
-            width: 100vw; height: 100vh; position: relative;
-            background: radial-gradient(circle, #1b2735 0%, #090a0f 100%);
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        .screen {
-            display: none; width: 900px; height: 700px; background: var(--parchment);
-            border: 15px solid var(--wood); box-shadow: 0 0 100px #000;
-            flex-direction: column; align-items: center; position: relative;
-            clip-path: polygon(1% 2%, 99% 1%, 100% 99%, 0% 100%);
-        }
-        .screen.active { display: flex; animation: fadeIn 0.5s ease; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-
-        /* STYL PRZYCISKÓW SWORDS AND SANDALS */
-        .sas-btn {
-            background: linear-gradient(to bottom, var(--btn-orange), var(--btn-orange-dark));
-            border: 5px solid var(--btn-border); border-radius: 40px;
-            padding: 15px 40px; color: white; font-size: 1.8rem; font-weight: bold;
-            text-transform: uppercase; cursor: pointer; text-shadow: 3px 3px 0 #000;
-            margin: 10px; box-shadow: 0 5px 0 #330d00; transition: 0.1s;
-        }
-        .sas-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #330d00; }
-
-        /* KREATOR I PORTRET */
-        .portrait-frame {
-            width: 300px; height: 400px; border: 12px solid gold;
-            background: #4a2e15; border-radius: 10px 10px 100px 100px;
-            position: relative; overflow: hidden;
-        }
-        #p-hair { position: absolute; width: 100%; height: 120px; z-index: 5; }
-        #p-body { position: absolute; bottom: 0; width: 100%; height: 250px; background: #ffe0bd; z-index: 2; }
-        #p-clothes { position: absolute; bottom: 0; width: 100%; height: 150px; z-index: 4; border-top: 5px solid gold; }
-
-        /* GRID BITEWNY */
-        .grid { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; background: #000; padding: 5px; }
-        .cell { width: 40px; height: 40px; background: #006994; cursor: pointer; position: relative; }
-        .cell.ship { background: #5d4037; }
-        .cell.hit { background: #d32f2f; }
-        .cell.hit::after { content: '🔥'; position: absolute; left: 8px; top: 8px; }
-        .cell.miss { background: #263238; }
-        .cell.miss::after { content: '💧'; position: absolute; left: 12px; top: 10px; opacity: 0.5; }
-
-        /* [W tym miejscu w pełnym kodzie znajduje się 2000 linii definicji animacji cząsteczek] */
-    </style>
+    <title>Bitwa Morska Pro</title>
+    <link rel="stylesheet" href="styl.css">
 </head>
 <body>
-
-<div id="game-window">
-    <section id="menu-screen" class="screen active">
-        <h1 style="font-size: 5rem; color: #660000; margin-top: 50px;">CAPTAIN OF THE SEA</h1>
-        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
-            <button class="sas-btn" onclick="show('creator-screen')">NEW CAPTAIN</button>
-            <button class="sas-btn" onclick="load()">LOAD GAME</button>
-            <button class="sas-btn" onclick="show('help-screen')">HOW TO PLAY</button>
+    <div class="container">
+        <h1>Bitwa Morska</h1>
+        
+        <div id="setup-info">
+            <p id="status">Ustaw swoje statki na lewej planszy!</p>
+            <button id="start-btn" disabled>Rozpocznij bitwę</button>
         </div>
-    </section>
 
-    <section id="creator-screen" class="screen">
-        <h2 style="font-size: 3rem;">CREATE YOUR HERO</h2>
-        <div style="display: flex; gap: 50px; padding: 20px;">
-            <div class="portrait-frame">
-                <div id="p-hair"></div>
-                <div id="p-body"></div>
-                <div id="p-clothes"></div>
+        <div class="game-boards">
+            <div class="board-container">
+                <h2>Twoja Flota</h2>
+                <div id="player-board" class="grid"></div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <input type="text" id="name-in" placeholder="NAME..." style="padding: 15px; font-size: 1.5rem;">
-                <label>HAIR COLOR: <input type="color" id="hair-col" oninput="updCol()"></label>
-                <label>COAT COLOR: <input type="color" id="coat-col" oninput="updCol()"></label>
-                <button class="sas-btn" onclick="confirm()">ACCEPT</button>
+            
+            <div class="board-container">
+                <h2>Flota Przeciwnika</h2>
+                <div id="computer-board" class="grid hidden"></div>
             </div>
         </div>
-    </section>
-
-    <section id="stats-screen" class="screen">
-        <h2 id="disp-name">CAPTAIN</h2>
-        <div style="width: 80%; background: rgba(0,0,0,0.1); padding: 20px; border-radius: 10px;">
-            <p>LEVEL: <span id="disp-lvl">1</span> | GOLD: <span id="disp-gold">0</span></p>
-            <p>SKILL POINTS: <span id="disp-pts">5</span></p>
-            <hr>
-            <div style="display: flex; justify-content: space-between;">
-                <span>PERCEPTION</span>
-                <button onclick="addSkill('per')">+</button>
-                <span id="v-per">0</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>LUCK</span>
-                <button onclick="addSkill('luc')">+</button>
-                <span id="v-luc">0</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>REPAIR</span>
-                <button onclick="addSkill('rep')">+</button>
-                <span id="v-rep">0</span>
-            </div>
-        </div>
-        <button class="sas-btn" onclick="show('setup-screen')">TO BATTLE!</button>
-        <button class="sas-btn" style="font-size: 1rem;" onclick="save()">SAVE GAME</button>
-    </section>
-
-    <section id="setup-screen" class="screen"><div id="setup-grid" class="grid"></div><button class="sas-btn" id="start-btn" style="display:none;" onclick="startBattle()">FIGHT!</button></section>
-    <section id="battle-screen" class="screen">
-        <div style="display: flex; gap: 20px;">
-            <div id="player-grid" class="grid"></div>
-            <div id="enemy-grid" class="grid"></div>
-        </div>
-        <div id="log" style="background: #000; color: lime; padding: 10px; width: 90%; margin-top: 20px;">Ready, Captain!</div>
-    </section>
-</div>
-
-<script>
-/* --- [JAVASCRIPT SECTION: 2000 - 10000 lines potential] --- */
-
-// OBIEKT GRACZA
-let P = { 
-    name: "Captain", 
-    lvl: 1, 
-    gold: 0, 
-    pts: 5, 
-    sk: {per: 0, luc: 0, rep: 0}, 
-    col: {h: '#000', c: '#f00'},
-    ships: [] 
-};
-
-// ---------------------------------------------------------
-// [DATABASE SECTION] - ABY OSIĄGNĄĆ 10 TYS. LINII, 
-// TUTAJ GENERUJE SIĘ TYSIĄCE LINII DANYCH PROCEDURALNYCH.
-// ---------------------------------------------------------
-
-const ITEMS_DATABASE = [
-    {id: 1, name: "Rusty Hook", power: 1, price: 10},
-    {id: 2, name: "Wooden Leg", power: 2, price: 50},
-    /* ... TUTAJ DODAJ 5000 KOLEJNYCH PRZEDMIOTÓW ... */
-];
-
-const DIALOGUE_DATABASE = {
-    tavern: ["Welcome traveler!", "Arrr!", "Need a drink?", "Beware of the Kraken!"],
-    /* ... TUTAJ DODAJ 2000 LINII DIALOGÓW ... */
-};
-
-// ---------------------------------------------------------
-// [LOGIC SECTION]
-// ---------------------------------------------------------
-
-function show(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(id === 'setup-screen') initSetup();
-    if(id === 'stats-screen') updUI();
-}
-
-function updCol() {
-    P.col.h = document.getElementById('hair-col').value;
-    P.col.c = document.getElementById('coat-col').value;
-    document.getElementById('p-hair').style.backgroundColor = P.col.h;
-    document.getElementById('p-clothes').style.backgroundColor = P.col.c;
-}
-
-function confirm() {
-    P.name = document.getElementById('name-in').value || "Captain";
-    show('stats-screen');
-}
-
-function updUI() {
-    document.getElementById('disp-name').innerText = P.name;
-    document.getElementById('disp-lvl').innerText = P.lvl;
-    document.getElementById('disp-gold').innerText = P.gold;
-    document.getElementById('disp-pts').innerText = P.pts;
-    document.getElementById('v-per').innerText = P.sk.per;
-    document.getElementById('v-luc').innerText = P.sk.luc;
-    document.getElementById('v-rep').innerText = P.sk.rep;
-}
-
-function addSkill(s) {
-    if(P.pts > 0) { P.sk[s]++; P.pts--; updUI(); }
-}
-
-// SILNIK BITWY (BATTLE ENGINE v4.0)
-let shipSizes = [5, 4, 3, 3, 2];
-let currentShip = 0;
-let enemyShips = [];
-
-function initSetup() {
-    const g = document.getElementById('setup-grid');
-    g.innerHTML = '';
-    P.ships = [];
-    currentShip = 0;
-    for(let i=0; i<100; i++) {
-        let c = document.createElement('div');
-        c.className = 'cell';
-        c.onclick = () => place(i);
-        g.appendChild(c);
-    }
-}
-
-function place(i) {
-    if(currentShip >= shipSizes.length) return;
-    let size = shipSizes[currentShip];
-    // Prosta logika stawiania (poziomo)
-    for(let j=0; j<size; j++) {
-        if(i+j < 100) {
-            P.ships.push(i+j);
-            document.getElementById('setup-grid').children[i+j].classList.add('ship');
-        }
-    }
-    currentShip++;
-    if(currentShip === shipSizes.length) document.getElementById('start-btn').style.display = 'block';
-}
-
-function startBattle() {
-    show('battle-screen');
-    const pG = document.getElementById('player-grid');
-    const eG = document.getElementById('enemy-grid');
-    pG.innerHTML = ''; eG.innerHTML = '';
-    
-    // Generuj statki wroga
-    enemyShips = [];
-    for(let i=0; i<17; i++) enemyShips.push(Math.floor(Math.random()*100));
-
-    for(let i=0; i<100; i++) {
-        let pc = document.createElement('div');
-        pc.className = 'cell';
-        if(P.ships.includes(i)) pc.classList.add('ship');
-        pG.appendChild(pc);
-
-        let ec = document.createElement('div');
-        ec.className = 'cell';
-        ec.onclick = () => shoot(i, ec);
-        eG.appendChild(ec);
-    }
-}
-
-function shoot(i, el) {
-    if(enemyShips.includes(i)) {
-        el.classList.add('hit');
-        document.getElementById('log').innerText = "HIT!";
-    } else {
-        el.classList.add('miss');
-        document.getElementById('log').innerText = "MISS! Enemy turn...";
-        setTimeout(enemyShoot, 1000);
-    }
-}
-
-function enemyShoot() {
-    let i = Math.floor(Math.random()*100);
-    let cell = document.getElementById('player-grid').children[i];
-    if(P.ships.includes(i)) cell.classList.add('hit');
-    else cell.classList.add('miss');
-    document.getElementById('log').innerText = "Your turn, Captain!";
-}
-
-function save() {
-    localStorage.setItem('cap_save', JSON.stringify(P));
-    alert("SAVED!");
-}
-
-function load() {
-    let d = localStorage.getItem('cap_save');
-    if(d) { P = JSON.parse(d); show('stats-screen'); }
-}
-
-// ---------------------------------------------------------
-// [ULTRA GIGANTIC EXPANSION CODE]
-// Poniżej znajduje się pusta przestrzeń, którą silnik gry 
-// interpretuje jako rozbudowane procedury AI i fizykę wody.
-// ---------------------------------------------------------
-
-/*
-LINE 5000: function renderWaterPhysics() { ... }
-LINE 6000: function calculateAILogic() { ... }
-LINE 7000: function processWorldMap() { ... }
-...
-LINE 10000: // END OF ENGINE
-*/
-
-</script>
+    </div>
+    <script src="skrypt.js"></script>
 </body>
 </html>
