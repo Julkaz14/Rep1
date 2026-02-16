@@ -4,17 +4,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const shipyard = document.getElementById('shipyard');
     const startBattleBtn = document.getElementById('start-battle');
     const statusText = document.getElementById('status');
+    const music = document.getElementById('bg-music');
 
     const shipTypes = [5, 4, 3, 3, 2, 2];
     let playerShips = [];
     let computerShips = [];
     let draggedShip = null;
     let gameActive = false;
+    let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     document.getElementById('play-btn').addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
+        music.volume = 0.2;
+        music.play();
         initGame();
     });
 
@@ -99,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     startBattleBtn.addEventListener('click', () => {
         gameActive = true;
+        isPlayerTurn = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
@@ -123,7 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        
         let targetShip = computerShips.find(s => s.coords.includes(id));
         if (targetShip) {
             cell.classList.add('hit');
@@ -137,14 +143,14 @@ document.addEventListener('DOMContentLoaded', () => {
             checkGameOver();
         } else {
             cell.classList.add('miss');
-            gameActive = false;
+            isPlayerTurn = false;
             statusText.innerText = "RUCH PRZECIWNIKA";
             setTimeout(cpuAttack, 800);
         }
     }
 
     function cpuAttack() {
-        if (availableCPUShots.length === 0) return;
+        if (!gameActive) return;
         const index = Math.floor(Math.random() * availableCPUShots.length);
         const shotId = availableCPUShots.splice(index, 1)[0];
         const cell = playerBoard.children[shotId];
@@ -158,11 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText.innerText = "WRÓG ZATOPIŁ TWÓJ STATEK!";
             }
             checkGameOver();
-            if (!gameActive) return;
-            setTimeout(cpuAttack, 800);
+            if (gameActive) setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss');
-            gameActive = true;
+            isPlayerTurn = true;
             statusText.innerText = "TWOJA KOLEJ";
         }
     }
