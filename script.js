@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const shipyard = document.getElementById('shipyard');
     const startBattleBtn = document.getElementById('start-battle');
     const statusText = document.getElementById('status');
-    const music = document.getElementById('bg-music');
     const playBtn = document.getElementById('play-btn');
+
+    // AUDIO ELEMENTY
+    const music = document.getElementById('bg-music');
+    const sndHit = document.getElementById('snd-hit');
+    const sndSink = document.getElementById('snd-sink');
+    const sndMiss = document.getElementById('snd-miss');
 
     const shipTypes = [5, 4, 3, 3, 2, 2];
     let playerShips = [];
@@ -16,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = [];
+
+    // Funkcja do odtwarzania efektów bez ucinania
+    function playSound(audioElement) {
+        audioElement.volume = 0.5; // Głośność efektów na 50%
+        audioElement.currentTime = 0;
+        audioElement.play().catch(() => {});
+    }
 
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
@@ -63,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function rotateShip(ship) {
         if(gameActive) return;
         if(ship.parentElement === playerBoard) {
-            renderShipyard(); // Reset do stoczni przy rotacji
+            renderShipyard(); 
             playerShips = playerShips.filter(s => s.id !== ship.id);
             startBattleBtn.classList.add('hidden');
             return;
@@ -136,12 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- KLUCZOWA POPRAWKA NAPISU ---
     function updateStatus() {
         if (!gameActive) return;
         if (isPlayerTurn) {
             statusText.innerText = "TWOJA TURA";
-            statusText.style.color = "#2e5a88";
+            statusText.style.color = "#1e4d77";
         } else {
             statusText.innerText = "TURA PRZECIWNIKA...";
             statusText.style.color = "#d32f2f";
@@ -155,13 +166,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
-            if (ship.hits === ship.len) ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+            
+            // --- DŹWIĘK TRAFIENIA LUB ZATOPIENIA ---
+            if (ship.hits === ship.len) {
+                playSound(sndSink); // Wielki wybuch
+                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+            } else {
+                playSound(sndHit); // Zwykły wybuch
+            }
+            
             checkGameOver();
         } else {
             cell.classList.add('miss');
+            playSound(sndMiss); // Dźwięk plusku wody
             isPlayerTurn = false;
-            updateStatus(); // Zmiana na "Tura Przeciwnika"
-            setTimeout(cpuAttack, 1000);
+            updateStatus();
+            setTimeout(cpuAttack, 1200);
         }
     }
 
@@ -178,21 +198,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            
+            // --- DŹWIĘK TRAFIENIA LUB ZATOPIENIA (Dla wroga) ---
+            if (ship.hits === ship.len) {
+                playSound(sndSink);
+                ship.coords.forEach(c => cells[c].classList.add('sunk'));
+                cpuHuntQueue = [];
+            } else {
+                playSound(sndHit);
+            }
+
             [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
                 if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
                     if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
                 }
             });
-            if (ship.hits === ship.len) {
-                ship.coords.forEach(c => cells[c].classList.add('sunk'));
-                cpuHuntQueue = [];
-            }
+            
             checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 800);
+            if (gameActive) setTimeout(cpuAttack, 900);
         } else {
             cell.classList.add('miss');
+            playSound(sndMiss); // Dźwięk plusku wody
             isPlayerTurn = true;
-            updateStatus(); // Zmiana na "Twoja Tura"
+            updateStatus();
         }
     }
 
@@ -202,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pWin || cWin) {
             gameActive = false;
             statusText.innerText = pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 1000);
+            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 1500);
         }
     }
 });
