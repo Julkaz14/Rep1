@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shipTypes.forEach((len, idx) => {
             const slot = document.createElement('div');
             slot.classList.add('ship-slot');
-            slot.dataset.slotIdx = idx; // Przypisujemy slot do indeksu statku
+            slot.dataset.slotIdx = idx;
             
             const ship = document.createElement('div');
             ship.classList.add('ship-drag');
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', (e) => {
-                e.stopPropagation(); // Zapobiega błędom bąbelkowania
+                e.stopPropagation();
                 handleShipClick(ship);
             });
             
@@ -81,26 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NOWA LOGIKA OBSŁUGI KLIKNIĘCIA (POWRÓT I ROTACJA) ---
     function handleShipClick(ship) {
         if(gameActive) return;
-
         if(ship.parentElement.classList.contains('grid')) {
-            // Jeśli statek jest na planszy -> cofnij go do stoczni
             const shipIdx = ship.id.split('-')[1];
             const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
-            
-            // Resetuj style pozycjonowania
             ship.style.position = "relative";
             ship.style.left = "0";
             ship.style.top = "0";
-            
-            // Usuń z pamięci i przenieś element DOM
             playerShips = playerShips.filter(s => s.id !== ship.id);
             originalSlot.appendChild(ship);
             startBattleBtn.classList.add('hidden');
         } else {
-            // Jeśli statek jest w stoczni -> po prostu go obróć
             const isVert = ship.dataset.vert === "true";
             const len = parseInt(ship.dataset.len);
             const newVert = !isVert;
@@ -126,16 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
-            
-            // Usuń starą pozycję tego samego statku jeśli istniała
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-            
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${cellX * 40}px`;
             draggedShip.style.top = `${cellY * 40}px`;
             playerBoard.appendChild(draggedShip);
-            
             if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         }
     });
@@ -143,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function canPlace(id, len, vert, sId, currentShips) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            // Sprawdź krawędzie i zajętość
             if (curr > 99 || (vert && curr < 0)) return false;
             if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
             if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
@@ -195,6 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 playSound(sndHit);
             }
+            // Sprawdzamy koniec gry PO KAŻDYM trafieniu gracza
             checkGameOver();
         } else {
             cell.classList.add('miss');
@@ -207,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function cpuAttack() {
         if (!gameActive) return;
+        
         let shotId;
         if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
         else shotId = availableCPUShots.splice(Math.floor(Math.random() * availableCPUShots.length), 1)[0];
@@ -218,20 +207,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            
             if (ship.hits === ship.len) {
                 playSound(sndSink);
                 ship.coords.forEach(c => cells[c].classList.add('sunk'));
                 cpuHuntQueue = [];
             } else {
                 playSound(sndHit);
+                // AI planuje kolejne strzały wokół trafienia
                 [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
                     if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
                         if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
                     }
                 });
             }
-            checkGameOver();
-            if (gameActive) setTimeout(cpuAttack, 800);
+
+            // KLUCZOWA POPRAWKA: Sprawdzamy czy AI wygrało ZANIM strzeli kolejny raz
+            if (checkGameOver()) return; 
+
+            // Jeśli gra trwa, AI strzela ponownie po krótkiej przerwie
+            setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss');
             playSound(sndMiss);
@@ -240,13 +235,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Zwraca true jeśli gra się skończyła
     function checkGameOver() {
-        const pWin = computerShips.every(s => s.hits === s.len);
-        const cWin = playerShips.every(s => s.hits === s.len);
-        if (pWin || cWin) {
+        const playerLost = playerShips.every(s => s.hits === s.len);
+        const computerLost = computerShips.every(s => s.hits === s.len);
+
+        if (playerLost || computerLost) {
             gameActive = false;
-            statusText.innerText = pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-            setTimeout(() => { alert(pWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 1500);
+            const msg = playerLost ? "PRZEGRANA! TWOJA FLOTA POSZŁA NA DNO." : "ZWYCIĘSTWO! WRÓG POKONANY!";
+            statusText.innerText = playerLost ? "PRZEGRANA!" : "ZWYCIĘSTWO!";
+            statusText.style.color = "#d32f2f";
+            
+            // Opóźnienie alertu, żeby gracz zobaczył ostatnie trafienie na planszy
+            setTimeout(() => {
+                alert(msg);
+                location.reload();
+            }, 500);
+            return true;
         }
+        return false;
     }
 });
