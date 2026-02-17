@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ELEMENTY UI
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
@@ -6,20 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
+    // AUDIO
     const music = document.getElementById('bg-music');
     const sndHit = document.getElementById('snd-hit');
     const sndSink = document.getElementById('snd-sink');
     const sndMiss = document.getElementById('snd-miss');
 
+    // KONFIGURACJA STATKÓW
     const shipTypes = [5, 4, 3, 3, 2, 2];
+    const totalHealth = shipTypes.reduce((a, b) => a + b, 0); // 19 masztów
+    
     let playerShips = [];
     let computerShips = [];
+    let playerHealth = totalHealth;
+    let cpuHealth = totalHealth;
+    
     let draggedShip = null;
     let gameActive = false;
     let isPlayerTurn = true;
 
+    // LOGIKA AI (INTELIGENCJA)
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = [];
+    let shipFoundAt = null; 
+    let lastHit = null;
+    let currentTargetDirection = null; // 'horizontal', 'vertical' lub null
 
     function playSound(audioElement) {
         if(!audioElement) return;
@@ -28,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audioElement.play().catch(() => {});
     }
 
+    // MENU I START
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
@@ -54,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // STOCZNIA I ROTACJA
     function renderShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
@@ -83,16 +97,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleShipClick(ship) {
         if(gameActive) return;
-        if(ship.parentElement.classList.contains('grid') || ship.parentElement === playerBoard) {
-            const shipIdx = ship.id.split('-')[1];
-            const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
+        
+        // Jeśli kliknięty statek nie jest w swoim slocie (czyli jest na planszy)
+        const shipIdx = ship.id.split('-')[1];
+        const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
+        
+        if(ship.parentElement !== originalSlot) {
             ship.style.position = "relative";
-            ship.style.left = "0";
-            ship.style.top = "0";
+            ship.style.left = "0"; ship.style.top = "0";
             playerShips = playerShips.filter(s => s.id !== ship.id);
             originalSlot.appendChild(ship);
             startBattleBtn.classList.add('hidden');
         } else {
+            // Rotacja w stoczni
             const isVert = ship.dataset.vert === "true";
             const len = parseInt(ship.dataset.len);
             const newVert = !isVert;
@@ -102,8 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // PRZECIĄGANIE
     playerBoard.addEventListener('dragover', e => e.preventDefault());
-    
     playerBoard.addEventListener('drop', e => {
         e.preventDefault();
         const rect = playerBoard.getBoundingClientRect();
@@ -120,10 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
+            
             draggedShip.style.position = "absolute";
             draggedShip.style.left = `${cellX * 40}px`;
             draggedShip.style.top = `${cellY * 40}px`;
             playerBoard.appendChild(draggedShip);
+            
             if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         }
     });
@@ -131,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function canPlace(id, len, vert, sId, currentShips) {
         for (let i = 0; i < len; i++) {
             let curr = vert ? id + i * 10 : id + i;
-            if (curr > 99 || (vert && curr < 0)) return false;
+            if (curr < 0 || curr > 99) return false;
             if (!vert && Math.floor(curr / 10) !== Math.floor(id / 10)) return false;
             if (currentShips.some(s => s.id !== sId && s.coords.includes(curr))) return false;
         }
@@ -169,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.style.color = isPlayerTurn ? "#1e4d77" : "#d32f2f";
     }
 
+    // ATAK GRACZA
     function playerAttack(id, cell) {
         if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
         
@@ -176,13 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            cpuHealth--;
             if (ship.hits === ship.len) {
                 playSound(sndSink);
                 ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             } else {
                 playSound(sndHit);
             }
-            checkEndConditions();
+            if (cpuHealth <= 0) endGame(true);
         } else {
             cell.classList.add('miss');
             playSound(sndMiss);
@@ -192,13 +213,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // INTELIGENTNY ATAK CPU
     function cpuAttack() {
         if (!gameActive) return;
         
         let shotId;
-        if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
-        else shotId = availableCPUShots.splice(Math.floor(Math.random() * availableCPUShots.length), 1)[0];
 
+        // 1. WYBÓR POLA DO STRZAŁU
+        if (cpuHuntQueue.length > 0) {
+            shotId = cpuHuntQueue.shift();
+        } else {
+            // Strategia szachownicy: (x + y) % 2 === 0
+            let checkerboardMoves = availableCPUShots.filter(id => {
+                let x = id % 10;
+                let y = Math.floor(id / 10);
+                return (x + y) % 2 === 0;
+            });
+            let pool = checkerboardMoves.length > 0 ? checkerboardMoves : availableCPUShots;
+            shotId = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        availableCPUShots = availableCPUShots.filter(id => id !== shotId);
         const cells = playerBoard.querySelectorAll('.cell');
         const cell = cells[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
@@ -206,23 +241,48 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit');
             ship.hits++;
+            playerHealth--;
             
             if (ship.hits === ship.len) {
+                // ZATOPIONY - Reset inteligencji kierunkowej
                 playSound(sndSink);
                 ship.coords.forEach(c => cells[c].classList.add('sunk'));
                 cpuHuntQueue = [];
+                shipFoundAt = null; lastHit = null; currentTargetDirection = null;
             } else {
                 playSound(sndHit);
-                [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => {
-                    if (n >= 0 && n < 100 && !cells[n].classList.contains('hit') && !cells[n].classList.contains('miss')) {
-                        if (Math.abs((n % 10) - (shotId % 10)) <= 1 && !cpuHuntQueue.includes(n)) cpuHuntQueue.push(n);
+                if (!shipFoundAt) shipFoundAt = shotId;
+
+                // Ustalanie kierunku po drugim trafieniu
+                if (lastHit !== null && !currentTargetDirection) {
+                    if (Math.abs(shotId - lastHit) === 1) currentTargetDirection = 'hor';
+                    if (Math.abs(shotId - lastHit) === 10) currentTargetDirection = 'ver';
+                }
+
+                // Generowanie sąsiadów do kolejki
+                let neighbors = [];
+                if (!currentTargetDirection) {
+                    neighbors = [shotId-10, shotId+10, shotId-1, shotId+1];
+                } else {
+                    let diff = (currentTargetDirection === 'hor') ? 1 : 10;
+                    neighbors = [shotId - diff, shotId + diff, shipFoundAt - diff, shipFoundAt + diff];
+                }
+
+                neighbors.forEach(n => {
+                    if (n >= 0 && n < 100 && availableCPUShots.includes(n)) {
+                        if (currentTargetDirection === 'ver' || Math.floor(n/10) === Math.floor(shotId/10) || Math.floor(n/10) === Math.floor(shipFoundAt/10)) {
+                            if (!cpuHuntQueue.includes(n)) cpuHuntQueue.unshift(n);
+                        }
                     }
                 });
+                lastHit = shotId;
             }
 
-            // Sprawdź natychmiast po trafieniu
-            if (checkEndConditions()) return;
-            setTimeout(cpuAttack, 700);
+            if (playerHealth <= 0) {
+                endGame(false);
+            } else {
+                setTimeout(cpuAttack, 700);
+            }
         } else {
             cell.classList.add('miss');
             playSound(sndMiss);
@@ -231,36 +291,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- NOWA, NIEZAWODNA FUNKCJA SPRAWDZANIA KOŃCA ---
-    function checkEndConditions() {
-        const playerLost = playerShips.every(ship => 
-            ship.coords.every(coord => playerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
-        );
-        const computerLost = computerShips.every(ship => 
-            ship.coords.every(coord => computerBoard.querySelectorAll('.cell')[coord].classList.contains('hit'))
-        );
-
-        if (playerLost) {
-            announceResult(false);
-            return true;
-        }
-        if (computerLost) {
-            announceResult(true);
-            return true;
-        }
-        return false;
-    }
-
-    function announceResult(isWin) {
+    function endGame(isWin) {
         gameActive = false;
         statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
-        
-        // Blokada klikania na planszę
-        computerBoard.style.pointerEvents = "none";
-
         setTimeout(() => {
-            alert(isWin ? "BRAWO! Zniszczyłeś flotę wroga!" : "TWOJA FLOTA ZATONĘŁA. Przegrałeś bitwę.");
+            alert(isWin ? "Wspaniałe zwycięstwo, Admirale!" : "Twoja flota spoczywa na dnie...");
             location.reload();
         }, 500);
     }
