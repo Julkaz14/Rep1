@@ -7,7 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // --- SYNTEZATOR DŹWIĘKÓW (Bez żadnych plików .mp3!) ---
+    // --- SYSTEM AUDIO ---
+    // Muzyka jako plik (upewnij się, że masz music.mp3 w folderze)
+    const bgMusic = new Audio('music.mp3');
+    bgMusic.loop = true;
+    bgMusic.volume = 0.2;
+
     let audioCtx;
 
     function initAudio() {
@@ -17,141 +22,100 @@ document.addEventListener('DOMContentLoaded', () => {
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
+        // Start muzyki z pliku
+        bgMusic.play().catch(err => console.log("Czekam na interakcję dla muzyki..."));
     }
 
-    // Generator szumu (dla pudła i wybuchów)
+    // Generator efektów (Synthesizer)
     function playNoise(duration, type, freq, vol) {
         if (!audioCtx) return;
         const bufferSize = audioCtx.sampleRate * duration;
         const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
         const noise = audioCtx.createBufferSource();
         noise.buffer = buffer;
         const filter = audioCtx.createBiquadFilter();
         filter.type = type;
         filter.frequency.value = freq;
         const gain = audioCtx.createGain();
-        
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
-        
+        noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
         noise.start();
         gain.gain.setValueAtTime(vol, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     }
 
-    // Generator tonów (dla armaty i melodyjek)
     function playTone(freq, type, duration, vol) {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        osc.connect(gain); gain.connect(audioCtx.destination);
         osc.start();
         gain.gain.setValueAtTime(vol, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
         osc.stop(audioCtx.currentTime + duration);
     }
 
-    // Konkretne efekty dźwiękowe
-    function soundMiss() { 
-        // Szum wysokich częstotliwości - imituje plusk wody
-        playNoise(0.3, 'highpass', 1000, 0.5); 
-    }
-    
-    function soundHit() { 
-        // Niskie tąpnięcie i szum - imituje wystrzał armaty
-        playTone(150, 'square', 0.4, 0.8);
-        playNoise(0.4, 'lowpass', 600, 1); 
-    }
-    
-    function soundSink() { 
-        // Dłuższy, głębszy dźwięk - zatopienie statku
-        playTone(80, 'sawtooth', 0.8, 1);
-        playNoise(0.8, 'lowpass', 300, 1.5); 
-    }
+    // Wywołania efektów
+    const soundMiss = () => playNoise(0.3, 'highpass', 1000, 0.3);
+    const soundHit = () => { playTone(150, 'square', 0.4, 0.5); playNoise(0.4, 'lowpass', 600, 0.6); };
+    const soundSink = () => { playTone(80, 'sawtooth', 0.8, 0.7); playNoise(0.8, 'lowpass', 300, 0.8); };
 
     function soundWin() {
-        if (!audioCtx) return;
         const t = audioCtx.currentTime;
-        const playNote = (f, time, d) => {
+        const notes = [440, 554, 659, 880];
+        notes.forEach((f, i) => {
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            const g = audioCtx.createGain();
+            osc.connect(g); g.connect(audioCtx.destination);
             osc.frequency.value = f;
-            osc.start(time);
-            gain.gain.setValueAtTime(0.5, time);
-            gain.gain.exponentialRampToValueAtTime(0.01, time + d);
-            osc.stop(time + d);
-        };
-        // Wesołe fanfary zwycięstwa (akordy)
-        playNote(440, t, 0.2);       // A4
-        playNote(554, t + 0.2, 0.2); // C#5
-        playNote(659, t + 0.4, 0.2); // E5
-        playNote(880, t + 0.6, 0.6); // A5
+            osc.start(t + i*0.15);
+            g.gain.setValueAtTime(0.3, t + i*0.15);
+            g.gain.exponentialRampToValueAtTime(0.01, t + i*0.15 + 0.4);
+            osc.stop(t + i*0.15 + 0.4);
+        });
     }
 
     function soundLose() {
-        if (!audioCtx) return;
         const t = audioCtx.currentTime;
-        const playNote = (f, time, d) => {
+        const notes = [300, 250, 200, 150];
+        notes.forEach((f, i) => {
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            const g = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.connect(g); g.connect(audioCtx.destination);
             osc.frequency.value = f;
-            osc.start(time);
-            gain.gain.setValueAtTime(0.5, time);
-            gain.gain.linearRampToValueAtTime(0.01, time + d);
-            osc.stop(time + d);
-        };
-        // Smutna opadająca melodia przegranej
-        playNote(300, t, 0.4);
-        playNote(280, t + 0.4, 0.4);
-        playNote(260, t + 0.8, 0.4);
-        playNote(220, t + 1.2, 1.0);
+            osc.start(t + i*0.3);
+            g.gain.setValueAtTime(0.3, t + i*0.3);
+            g.gain.linearRampToValueAtTime(0.01, t + i*0.3 + 0.5);
+            osc.stop(t + i*0.3 + 0.5);
+        });
     }
-    // --------------------------------------------------------
 
-    // CONFIG
+    // --- LOGIKA GRY ---
     const shipTypes = [5, 4, 3, 3, 2, 2];
     const totalHealth = shipTypes.reduce((a, b) => a + b, 0); 
-    
-    let playerShips = [];
-    let computerShips = [];
-    let playerHealth = totalHealth;
-    let cpuHealth = totalHealth;
+    let playerShips = [], computerShips = [], playerHealth = totalHealth, cpuHealth = totalHealth;
+    let draggedShip = null, gameActive = false, isPlayerTurn = true;
     let playerShipsAfloat = [...shipTypes];
-    
-    let draggedShip = null;
-    let gameActive = false;
-    let isPlayerTurn = true;
-
-    // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     playBtn.addEventListener('click', () => {
-        initAudio(); // Odblokowanie dźwięków w przeglądarce po kliknięciu
+        initAudio(); // Budzimy muzykę i syntezator
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         initGame();
     });
 
     function initGame() {
-        playerBoard.innerHTML = ''; 
-        computerBoard.innerHTML = '';
+        playerBoard.innerHTML = ''; computerBoard.innerHTML = '';
         renderShipyard();
         for (let i = 0; i < 100; i++) {
-            const pCell = document.createElement('div');
-            pCell.classList.add('cell'); pCell.dataset.id = i;
+            const pCell = document.createElement('div'); pCell.classList.add('cell');
             playerBoard.appendChild(pCell);
-            const cCell = document.createElement('div');
-            cCell.classList.add('cell'); cCell.dataset.id = i;
+            const cCell = document.createElement('div'); cCell.classList.add('cell');
             cCell.addEventListener('click', () => playerAttack(i, cCell));
             computerBoard.appendChild(cCell);
         }
@@ -160,19 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderShipyard() {
         shipyard.innerHTML = '';
         shipTypes.forEach((len, idx) => {
-            const slot = document.createElement('div');
-            slot.classList.add('ship-slot');
+            const slot = document.createElement('div'); slot.classList.add('ship-slot');
             slot.dataset.slotIdx = idx;
             const ship = document.createElement('div');
-            ship.classList.add('ship-drag');
-            ship.id = `ship-${idx}`;
+            ship.classList.add('ship-drag'); ship.id = `ship-${idx}`;
             ship.dataset.len = len; ship.dataset.vert = "false";
             ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
             ship.draggable = true;
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', (e) => { e.stopPropagation(); handleShipClick(ship); });
-            slot.appendChild(ship);
-            shipyard.appendChild(slot);
+            slot.appendChild(ship); shipyard.appendChild(slot);
         });
     }
 
@@ -181,8 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shipIdx = ship.id.split('-')[1];
         const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
         if(ship.parentElement !== originalSlot) {
-            ship.style.position = "relative";
-            ship.style.left = "0"; ship.style.top = "0";
+            ship.style.position = "relative"; ship.style.left = "0"; ship.style.top = "0";
             playerShips = playerShips.filter(s => s.id !== ship.id);
             originalSlot.appendChild(ship);
             startBattleBtn.classList.add('hidden');
@@ -204,15 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const startId = cellY * 10 + cellX;
         const len = parseInt(draggedShip.dataset.len);
         const vert = draggedShip.dataset.vert === "true";
-
         if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
             const coords = [];
             for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
             playerShips = playerShips.filter(s => s.id !== draggedShip.id);
             playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
             draggedShip.style.position = "absolute";
-            draggedShip.style.left = `${cellX * 40}px`;
-            draggedShip.style.top = `${cellY * 40}px`;
+            draggedShip.style.left = `${cellX * 40}px`; draggedShip.style.top = `${cellY * 40}px`;
             playerBoard.appendChild(draggedShip);
             if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
         }
@@ -231,9 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
-        startBattleBtn.classList.add('hidden');
-        setupCPU();
-        updateStatus();
+        setupCPU(); updateStatus();
     });
 
     function setupCPU() {
@@ -259,24 +215,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return;
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
-                soundSink(); // Dźwięk zatopienia
-                ship.coords.forEach(c => {
-                    let targetCell = computerBoard.children[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
-            } else {
-                soundHit(); // Dźwięk armaty (trafienie)
-            }
+                soundSink();
+                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+            } else soundHit();
             if (cpuHealth <= 0) endGame(true);
         } else {
-            cell.classList.add('miss'); 
-            soundMiss(); // Dźwięk plusku fali (pudło)
+            cell.classList.add('miss'); soundMiss();
             isPlayerTurn = false; updateStatus();
             setTimeout(cpuAttack, 700);
         }
@@ -284,206 +233,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function cpuAttack() {
         if (!gameActive) return;
-
-        let shotId = getDynamicHuntShot();
-        if (shotId === null) {
-            shotId = calculateBestMove();
-        }
-
-        if (!availableCPUShots.includes(shotId)) {
-            if (gameActive) cpuAttack();
-            return;
-        }
-
+        let shotId = availableCPUShots[Math.floor(Math.random() * availableCPUShots.length)];
         availableCPUShots = availableCPUShots.filter(id => id !== shotId);
         const cell = playerBoard.querySelectorAll('.cell')[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
-
         if (ship) {
-            cell.classList.add('hit');
-            playerHealth--;
-
+            cell.classList.add('hit'); playerHealth--;
             if (++ship.hits === ship.len) {
-                soundSink(); // Dźwięk zatopienia
-                ship.coords.forEach(c => {
-                    let targetCell = playerBoard.querySelectorAll('.cell')[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
-                const idx = playerShipsAfloat.indexOf(ship.len);
-                if (idx > -1) playerShipsAfloat.splice(idx, 1);
-            } else {
-                soundHit(); // Dźwięk armaty
-            }
-
+                soundSink();
+                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
+            } else soundHit();
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss'); 
-            soundMiss(); // Dźwięk plusku fali
+            cell.classList.add('miss'); soundMiss();
             isPlayerTurn = true; updateStatus();
         }
     }
 
-    function getDynamicHuntShot() {
-        const cells = playerBoard.querySelectorAll('.cell');
-        let unsunkHits = [];
-        for(let i=0; i<100; i++) {
-            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) unsunkHits.push(i);
-        }
-        if(unsunkHits.length === 0) return null;
-
-        let target = unsunkHits[0];
-        let cluster = [target];
-        let queue = [target];
-        while(queue.length > 0) {
-            let curr = queue.shift();
-            [curr-1, curr+1, curr-10, curr+10].forEach(n => {
-                if(unsunkHits.includes(n) && !cluster.includes(n)) {
-                    if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
-                    cluster.push(n); queue.push(n);
-                }
-            });
-        }
-        let possibleMoves = [];
-        let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
-        let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
-        if (isHorLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min % 10 > 0) possibleMoves.push(min - 1);
-            if (max % 10 < 9) possibleMoves.push(max + 1);
-        } else if (isVerLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min >= 10) possibleMoves.push(min - 10);
-            if (max <= 89) possibleMoves.push(max + 10);
-        }
-        possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
-        if (possibleMoves.length === 0) {
-            cluster.forEach(c => {
-                if (c >= 10) possibleMoves.push(c - 10);
-                if (c <= 89) possibleMoves.push(c + 10);
-                if (c % 10 > 0) possibleMoves.push(c - 1);
-                if (c % 10 < 9) possibleMoves.push(c + 1);
-            });
-            possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
-        }
-        return possibleMoves.length > 0 ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)] : null;
-    }
-
-    function calculateBestMove() {
-        let weights = new Array(100).fill(0);
-        const cells = playerBoard.querySelectorAll('.cell');
-        playerShipsAfloat.forEach(shipLen => {
-            for (let i = 0; i < 100; i++) {
-                if (i % 10 <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j].classList.contains('miss') || cells[i+j].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j]++;
-                }
-                if (Math.floor(i / 10) <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j*10].classList.contains('miss') || cells[i+j*10].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j*10]++;
-                }
-            }
-        });
-        let maxW = -1; let moves = [];
-        availableCPUShots.forEach(i => {
-            if (weights[i] > maxW) { maxW = weights[i]; moves = [i]; }
-            else if (weights[i] === maxW) moves.push(i);
-        });
-        return moves[Math.floor(Math.random() * moves.length)];
-    }
-
-    // --- ZAKOŃCZENIE GRY ---
     function endGame(isWin) {
         gameActive = false;
-        statusText.innerText = "KONIEC BITWY";
+        bgMusic.pause(); // Stop muzyki
+        isWin ? soundWin() : soundLose();
 
-        // ODEGRANIE DŹWIĘKU WYGRANEJ LUB PRZEGRANEJ
-        if (isWin) {
-            soundWin();
-        } else {
-            soundLose();
-        }
-
+        // Odkryj statki wroga
         computerShips.forEach(ship => {
             ship.coords.forEach(c => {
                 const cell = computerBoard.children[c];
-                if (!cell.classList.contains('hit') && !cell.classList.contains('sunk')) {
-                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.6)';
-                    cell.style.border = '2px dashed #ecf0f1';
-                    cell.style.boxShadow = 'inset 0 0 10px rgba(0,0,0,0.5)';
+                if (!cell.classList.contains('hit')) {
+                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.4)';
+                    cell.style.border = '1px dashed white';
                 }
             });
         });
 
+        // Ekran końcowy
         const screen = document.createElement('div');
-        screen.id = "end-screen-overlay";
         Object.assign(screen.style, {
             position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
             backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column',
-            justifyContent: 'center', alignItems: 'center', zIndex: '10000',
-            fontFamily: 'Impact, sans-serif', color: isWin ? '#4CAF50' : '#F44336'
+            justifyContent: 'center', alignItems: 'center', zIndex: '10000', color: isWin ? '#4CAF50' : '#F44336'
         });
-
-        const bigText = document.createElement('h1');
-        bigText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-        bigText.style.fontSize = '6rem';
-        bigText.style.margin = '0';
-        bigText.style.textShadow = '0 0 30px ' + (isWin ? '#4CAF50' : '#F44336');
-
-        const subText = document.createElement('p');
-        subText.innerText = isWin ? "Ocean należy do Ciebie." : "Twoja flota zatonęła.";
-        subText.style.color = 'white';
-        subText.style.fontSize = '1.5rem';
-        subText.style.fontFamily = 'Arial';
-
-        const buttons = document.createElement('div');
-        buttons.style.marginTop = '40px';
-        buttons.style.display = 'flex';
-        buttons.style.gap = '20px';
-
+        const h1 = document.createElement('h1');
+        h1.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+        h1.style.fontSize = '5rem';
+        const btn = document.createElement('button');
+        btn.innerText = "ZAGRAJ PONOWNIE";
+        Object.assign(btn.style, { padding: '15px 30px', marginTop: '20px', cursor: 'pointer', fontSize: '1.2rem' });
+        btn.onclick = () => location.reload();
+        
         const btnView = document.createElement('button');
-        btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
-        styleBtn(btnView, '#3498db');
-        btnView.onclick = () => {
-            screen.remove(); 
-            createMiniReset(); 
-        };
+        btnView.innerText = "ZOBACZ PLANSZĘ";
+        Object.assign(btnView.style, { padding: '15px 30px', marginTop: '10px', cursor: 'pointer' });
+        btnView.onclick = () => screen.remove();
 
-        const btnAgain = document.createElement('button');
-        btnAgain.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(btnAgain, '#e67e22');
-        btnAgain.onclick = () => location.reload();
-
-        buttons.appendChild(btnView);
-        buttons.appendChild(btnAgain);
-        screen.appendChild(bigText);
-        screen.appendChild(subText);
-        screen.appendChild(buttons);
+        screen.append(h1, btn, btnView);
         document.body.appendChild(screen);
-    }
-
-    function styleBtn(btn, color) {
-        Object.assign(btn.style, {
-            padding: '15px 30px', fontSize: '1.2rem', fontWeight: 'bold',
-            cursor: 'pointer', border: 'none', borderRadius: '50px',
-            backgroundColor: color, color: 'white', transition: '0.3s'
-        });
-        btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
-        btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    }
-
-    function createMiniReset() {
-        const mini = document.createElement('button');
-        mini.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(mini, '#e67e22');
-        Object.assign(mini.style, {
-            position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: '9999', boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-        });
-        mini.onclick = () => location.reload();
-        document.body.appendChild(mini);
     }
 });
