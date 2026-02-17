@@ -24,13 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // --- ZAAWANSOWANA PAMIĘĆ AI ---
+    // --- LOGIKA AI: APEX PREDATOR ---
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
     let cpuHuntQueue = [];
-    let shipOrigin = null; // Pierwsze trafienie w dany statek
-    let lastHit = null;    // Ostatnie trafienie
-    let lockedAxis = null; // 'hor' lub 'ver'
-    let currentDirection = null; // kierunek (-1, 1, -10, 10)
+    let shipOrigin = null;  // Pierwsze trafienie w serii
+    let lastHit = null;     // Ostatnie trafienie w serii
+    let lockedAxis = null;  // 'hor' lub 'ver'
+    let currentDir = null;  // Kierunek aktualnego ataku: -1, 1, -10, 10
 
     function playSound(audioElement) {
         if(!audioElement) return;
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audioElement.play().catch(() => {});
     }
 
-    // --- INICJALIZACJA I MENU ---
+    // --- START I UI ---
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
@@ -181,107 +181,129 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LOGIKA AI: "COLD-BLOODED SNIPER" ---
+    // --- LOGIKA AI: ABSOLUTNIE BEZLITOSNA ---
     function cpuAttack() {
         if (!gameActive) return;
-        
+
         let shotId;
 
-        // PRIORYTET 1: Jeśli mamy konkretną kolejkę polowania (hit w statek)
+        // Jeśli mamy namierzony cel, nie strzelamy nigdzie indziej
         if (cpuHuntQueue.length > 0) {
             shotId = cpuHuntQueue.shift();
         } else {
-            // PRIORYTET 2: Jeśli nic nie polujemy, użyj mapy prawdopodobieństwa
-            shotId = calculateBestMove();
+            // Brak celów w kolejce, a shipOrigin nie jest nullem? 
+            // To znaczy, że spudłowaliśmy na jednym końcu, wracamy do początku
+            if (shipOrigin !== null) {
+                generateRescueQueue();
+                if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
+                else shotId = calculateBestMove();
+            } else {
+                shotId = calculateBestMove();
+            }
         }
 
-        // Zabezpieczenie przed powtórnym strzałem w to samo miejsce
+        // Zabezpieczenie przed strzałem w to samo miejsce
         if (!availableCPUShots.includes(shotId)) {
-            cpuAttack(); // Jeśli wybrane pole jest zajęte, losuj/licz jeszcze raz
+            if (gameActive) cpuAttack();
             return;
         }
 
         availableCPUShots = availableCPUShots.filter(id => id !== shotId);
-        const cells = playerBoard.querySelectorAll('.cell');
-        const cell = cells[shotId];
+        const cell = playerBoard.querySelectorAll('.cell')[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
             cell.classList.add('hit');
             playerHealth--;
-            
+
             if (++ship.hits === ship.len) {
-                // ZATOPIONY: Całkowity reset pamięci polowania
+                // ZATOPIONY - Pełny reset, powrót do mapy prawdopodobieństwa
                 playSound(sndSink);
-                ship.coords.forEach(c => cells[c].classList.add('sunk'));
+                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
                 
-                // Resetujemy wszystkie zmienne stanu
-                cpuHuntQueue = []; shipOrigin = null; lastHit = null; lockedAxis = null; currentDirection = null;
+                shipOrigin = null; lastHit = null; lockedAxis = null; currentDir = null;
+                cpuHuntQueue = [];
             } else {
-                // TRAFIONY: Planowanie profesjonalnego dobijania
+                // TRAFIONY - Kontynuacja egzekucji
                 playSound(sndHit);
-                
                 if (shipOrigin === null) {
-                    // Pierwsze trafienie: szukaj we wszystkich 4 kierunkach
+                    // Pierwsze trafienie: badaj boki
                     shipOrigin = shotId;
-                    cpuHuntQueue = []; // Czyścimy na wszelki wypadek
-                    [shotId-10, shotId+10, shotId-1, shotId+1].forEach(n => addIfPotential(n));
+                    lastHit = shotId;
+                    cpuHuntQueue = [shotId-10, shotId+10, shotId-1, shotId+1].filter(n => isValidMove(n));
                 } else {
-                    // Drugie trafienie: BLOKUJEMY OŚ!
+                    // Kolejne trafienie: BLOKADA OSI
                     if (!lockedAxis) {
                         lockedAxis = Math.abs(shotId - shipOrigin) < 10 ? 'hor' : 'ver';
-                        // Usuń z kolejki wszystko, co nie pasuje do osi
-                        cpuHuntQueue = cpuHuntQueue.filter(id => {
-                            if (lockedAxis === 'hor') return Math.floor(id/10) === Math.floor(shipOrigin/10);
-                            return id % 10 === shipOrigin % 10;
-                        });
                     }
                     
-                    // Kontynuujemy w tym samym kierunku
-                    currentDirection = shotId - lastHit;
-                    let nextShot = shotId + currentDirection;
-                    if (isPotential(nextShot)) {
-                        cpuHuntQueue.unshift(nextShot); // Dodaj na sam początek kolejki
+                    // Ustal kierunek i czyść błędy (strzały w boki)
+                    currentDir = shotId - lastHit;
+                    
+                    // Usuń z kolejki wszystko co nie leży na tej osi
+                    cpuHuntQueue = cpuHuntQueue.filter(id => {
+                        if (lockedAxis === 'hor') return Math.floor(id/10) === Math.floor(shipOrigin/10);
+                        return id % 10 === shipOrigin % 10;
+                    });
+
+                    // Dodaj następne pole w TYM SAMYM kierunku na początek kolejki
+                    let nextLine = shotId + currentDir;
+                    if (isValidMove(nextLine)) {
+                        cpuHuntQueue.unshift(nextLine);
                     }
                     
-                    // Dodaj drugą stronę osi do kolejki (na koniec) jako plan awaryjny
-                    let oppositeDirection = shipOrigin - (shotId - shipOrigin);
-                    let diff = shipOrigin - shotId;
-                    let farEnd = shipOrigin + (diff > 0 ? -1 : 1) * (lockedAxis === 'hor' ? 1 : 10);
-                    if (isPotential(farEnd)) cpuHuntQueue.push(farEnd);
+                    // Dodaj pole w przeciwną stronę od origin na koniec kolejki (bezpiecznik)
+                    let oppDir = (shipOrigin - shotId) > 0 ? (lockedAxis === 'hor' ? 1 : 10) : (lockedAxis === 'hor' ? -1 : -10);
+                    let otherEnd = shipOrigin + oppDir;
+                    if (isValidMove(otherEnd)) {
+                        cpuHuntQueue.push(otherEnd);
+                    }
+                    lastHit = shotId;
                 }
-                lastHit = shotId;
             }
             if (playerHealth <= 0) endGame(false);
-            else setTimeout(cpuAttack, 500);
+            else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss'); playSound(sndMiss);
-            isPlayerTurn = true; updateStatus();
-            
-            // Jeśli spudłowaliśmy w trybie polowania, zmień kierunek na przeciwny
+            cell.classList.add('miss');
+            playSound(sndMiss);
+            isPlayerTurn = true;
+            updateStatus();
+
+            // Jeśli spudłowaliśmy podczas dobijania, następny strzał musi być z drugiej strony origin
             if (shipOrigin !== null && lockedAxis !== null) {
-                // Jeśli płynęliśmy w jedną stronę i pudło, następnym strzałem ma być druga strona
-                let reverseDirection = shipOrigin > lastHit ? 1 : -1;
-                let step = lockedAxis === 'hor' ? 1 : 10;
-                let nextSearch = shipOrigin + (reverseDirection * step);
-                if (isPotential(nextSearch)) cpuHuntQueue.unshift(nextSearch);
+                generateRescueQueue();
             }
         }
     }
 
-    function isPotential(n) {
-        if (n < 0 || n > 99) return false;
-        const cells = playerBoard.querySelectorAll('.cell');
-        if (cells[n].classList.contains('hit') || cells[n].classList.contains('miss') || cells[n].classList.contains('sunk')) return false;
-        // Dodatkowe sprawdzenie zawijania w poziomie
-        if (lockedAxis === 'hor' && Math.floor(n/10) !== Math.floor(shipOrigin/10)) return false;
-        return true;
+    function generateRescueQueue() {
+        if (shipOrigin === null) return;
+        let steps = lockedAxis === 'hor' ? [1, -1] : [10, -10];
+        cpuHuntQueue = [];
+        steps.forEach(s => {
+            let n = shipOrigin + s;
+            while(n >= 0 && n < 100 && playerBoard.querySelectorAll('.cell')[n].classList.contains('hit')) {
+                n += s;
+            }
+            if (isValidMove(n)) cpuHuntQueue.push(n);
+        });
     }
 
-    function addIfPotential(n) {
-        if (isPotential(n)) cpuHuntQueue.push(n);
+    function isValidMove(n) {
+        if (n < 0 || n > 99) return false;
+        const cell = playerBoard.querySelectorAll('.cell')[n];
+        if (cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return false;
+        
+        // Jeśli mamy oś, sprawdzaj czy pole do niej należy
+        if (lockedAxis === 'hor' && shipOrigin !== null) {
+            if (Math.floor(n/10) !== Math.floor(shipOrigin/10)) return false;
+        }
+        if (lockedAxis === 'ver' && shipOrigin !== null) {
+            if (n % 10 !== shipOrigin % 10) return false;
+        }
+        return true;
     }
 
     function calculateBestMove() {
@@ -299,7 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     if (canFit) {
-                        for (let j = 0; j < shipLen; j++) weights[i + j]++;
+                        for (let j = 0; j < shipLen; j++) {
+                            if (!cells[i + j].classList.contains('hit')) weights[i + j]++;
+                        }
                     }
                 }
                 // Pionowo
@@ -311,7 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                     if (canFit) {
-                        for (let j = 0; j < shipLen; j++) weights[i + j * 10]++;
+                        for (let j = 0; j < shipLen; j++) {
+                            if (!cells[i + j * 10].classList.contains('hit')) weights[i + j * 10]++;
+                        }
                     }
                 }
             }
@@ -319,16 +345,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let maxWeight = -1;
         let bestMoves = [];
-        for (let i = 0; i < 100; i++) {
-            if (availableCPUShots.includes(i)) {
-                if (weights[i] > maxWeight) {
-                    maxWeight = weights[i];
-                    bestMoves = [i];
-                } else if (weights[i] === maxWeight) {
-                    bestMoves.push(i);
-                }
+        availableCPUShots.forEach(i => {
+            if (weights[i] > maxWeight) {
+                maxWeight = weights[i];
+                bestMoves = [i];
+            } else if (weights[i] === maxWeight) {
+                bestMoves.push(i);
             }
-        }
+        });
         return bestMoves[Math.floor(Math.random() * bestMoves.length)];
     }
 
@@ -336,6 +360,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameActive = false;
         statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
-        setTimeout(() => { alert(isWin ? "Wspaniałe zwycięstwo!" : "Przegrałeś. Wróg był zbyt silny."); location.reload(); }, 500);
+        setTimeout(() => { alert(isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
     }
 });
