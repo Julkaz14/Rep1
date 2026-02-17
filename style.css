@@ -1,93 +1,90 @@
-/* GŁÓWNE KONFIGURACJE */
-:root {
-    --water-blue: #3498db;
-    --ship-color: #2c3e50;
-    --hit-color: #e74c3c;
-    --miss-color: #ecf0f1;
-}
+/* IMPORT CZCIONEK Z TWOJEGO KODU */
+@import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Special+Elite&display=swap');
 
 body {
-    background-color: #1a1a1a;
-    color: white;
+    background-color: #1a1a2e;
+    color: #e2e2e2;
     font-family: 'Special Elite', cursive;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    margin: 0;
 }
 
-/* MENU I OVERLAY */
-.hidden { display: none !important; }
-
+/* MENU */
 .overlay {
     text-align: center;
-    background: rgba(0,0,0,0.8);
-    padding: 50px;
-    border-radius: 20px;
-    border: 3px solid #f1c40f;
+    background: rgba(15, 15, 35, 0.9);
+    padding: 40px;
+    border: 3px solid #1e4d77;
+    border-radius: 15px;
 }
 
-/* PLANSZA (GRID) */
+.hidden { display: none !important; }
+
+/* PLANSZA (GRID 40px) */
 .grid {
     display: grid;
     grid-template-columns: repeat(10, 40px);
     grid-template-rows: repeat(10, 40px);
     gap: 1px;
-    background-color: #2980b9;
-    border: 4px solid #34495e;
-    margin-top: 10px;
+    background-color: #0f3460;
+    border: 4px solid #16213e;
+    margin: 10px auto;
 }
 
 .cell {
     width: 40px;
     height: 40px;
-    background-color: var(--water-blue);
+    background-color: #3498db;
     border: 1px solid rgba(255,255,255,0.1);
+    box-sizing: border-box;
 }
 
-/* STATKI W STOCZNI I NA PLANSZY */
-.shipyard {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    min-height: 200px;
-    padding: 10px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 10px;
+/* WYGLĄD STATKÓW - TO NAPRAWIA CIENKIE LINIE */
+.ship-drag {
+    background-color: #2c3e50; /* Solidny kolor statku */
+    border: 2px solid #bdc3c7;
+    border-radius: 5px;
+    cursor: grab;
+    z-index: 100;
+    box-sizing: border-box; /* Ważne dla wymiarów */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 
 .ship-slot {
+    min-width: 40px;
     min-height: 45px;
+    margin: 10px 0;
     display: flex;
     align-items: center;
 }
 
-.ship-drag {
-    background-color: var(--ship-color);
-    border: 2px solid #bdc3c7;
-    border-radius: 4px;
-    cursor: grab;
-    position: relative;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-
-.ship-drag:active { cursor: grabbing; }
-
-/* TRAFIENIA I PUDŁA */
-.hit { background-color: var(--hit-color) !important; }
-.miss { background-color: var(--miss-color) !important; opacity: 0.5; }
-.sunk { background-color: #000 !important; border: 1px solid red; }
+/* STATUSY TRAFIEŃ */
+.hit { background-color: #e74c3c !important; }
+.miss { background-color: #ecf0f1 !important; opacity: 0.6; }
+.sunk { background-color: #2c3e50 !important; border: 2px solid #000 !important; }
 
 /* PRZYCISKI */
 button {
-    padding: 15px 30px;
     font-family: 'Pirata One', cursive;
-    font-size: 1.5rem;
-    background: #f1c40f;
+    background-color: #e67e22;
+    color: white;
     border: none;
+    padding: 10px 25px;
+    font-size: 1.5rem;
     cursor: pointer;
+    border-radius: 5px;
     transition: 0.3s;
 }
 
-button:hover { transform: scale(1.1); background: #f39c12; }
+button:hover { background-color: #d35400; transform: scale(1.05); }
+
+/* KONTENER GRY */
+.battlefield {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
