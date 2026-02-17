@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // UI ELEMENTS
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
@@ -6,11 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
+    // AUDIO
     const music = document.getElementById('bg-music');
     const sndHit = document.getElementById('snd-hit');
     const sndSink = document.getElementById('snd-sink');
     const sndMiss = document.getElementById('snd-miss');
 
+    // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
     const totalHealth = shipTypes.reduce((a, b) => a + b, 0); 
     
@@ -24,13 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // --- LOGIKA AI: APEX PREDATOR ---
+    // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
-    let cpuHuntQueue = [];
-    let shipOrigin = null;  // Pierwsze trafienie w serii
-    let lastHit = null;     // Ostatnie trafienie w serii
-    let lockedAxis = null;  // 'hor' lub 'ver'
-    let currentDir = null;  // Kierunek aktualnego ataku: -1, 1, -10, 10
 
     function playSound(audioElement) {
         if(!audioElement) return;
@@ -39,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         audioElement.play().catch(() => {});
     }
 
-    // --- START I UI ---
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
@@ -165,13 +162,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return;
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
                 playSound(sndSink);
-                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
+                ship.coords.forEach(c => {
+                    let targetCell = computerBoard.children[c];
+                    targetCell.classList.add('sunk');
+                    targetCell.style.backgroundColor = '#2c3e50'; 
+                });
             } else playSound(sndHit);
             if (cpuHealth <= 0) endGame(true);
         } else {
@@ -181,28 +182,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LOGIKA AI: ABSOLUTNIE BEZLITOSNA ---
+    // --- CZYSTA INTELIGENCJA AI ---
     function cpuAttack() {
         if (!gameActive) return;
 
-        let shotId;
-
-        // Jeśli mamy namierzony cel, nie strzelamy nigdzie indziej
-        if (cpuHuntQueue.length > 0) {
-            shotId = cpuHuntQueue.shift();
-        } else {
-            // Brak celów w kolejce, a shipOrigin nie jest nullem? 
-            // To znaczy, że spudłowaliśmy na jednym końcu, wracamy do początku
-            if (shipOrigin !== null) {
-                generateRescueQueue();
-                if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
-                else shotId = calculateBestMove();
-            } else {
-                shotId = calculateBestMove();
-            }
+        // Krok 1: Decyzja, gdzie strzelać na podstawie tego, co widać na planszy
+        let shotId = getDynamicHuntShot();
+        if (shotId === null) {
+            shotId = calculateBestMove(); // PDM jeśli nie ma żadnych niezakończonych trafień
         }
 
-        // Zabezpieczenie przed strzałem w to samo miejsce
+        // Zabezpieczenie pętli
         if (!availableCPUShots.includes(shotId)) {
             if (gameActive) cpuAttack();
             return;
@@ -217,128 +207,113 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
-                // ZATOPIONY - Pełny reset, powrót do mapy prawdopodobieństwa
+                // EFEKT ZATOPIENIA: statek zostaje oznaczony ostatecznie
                 playSound(sndSink);
-                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
+                ship.coords.forEach(c => {
+                    let targetCell = playerBoard.querySelectorAll('.cell')[c];
+                    targetCell.classList.add('sunk');
+                    targetCell.style.backgroundColor = '#2c3e50'; // Zdecydowana wizualna zmiana
+                });
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
-                
-                shipOrigin = null; lastHit = null; lockedAxis = null; currentDir = null;
-                cpuHuntQueue = [];
             } else {
-                // TRAFIONY - Kontynuacja egzekucji
                 playSound(sndHit);
-                if (shipOrigin === null) {
-                    // Pierwsze trafienie: badaj boki
-                    shipOrigin = shotId;
-                    lastHit = shotId;
-                    cpuHuntQueue = [shotId-10, shotId+10, shotId-1, shotId+1].filter(n => isValidMove(n));
-                } else {
-                    // Kolejne trafienie: BLOKADA OSI
-                    if (!lockedAxis) {
-                        lockedAxis = Math.abs(shotId - shipOrigin) < 10 ? 'hor' : 'ver';
-                    }
-                    
-                    // Ustal kierunek i czyść błędy (strzały w boki)
-                    currentDir = shotId - lastHit;
-                    
-                    // Usuń z kolejki wszystko co nie leży na tej osi
-                    cpuHuntQueue = cpuHuntQueue.filter(id => {
-                        if (lockedAxis === 'hor') return Math.floor(id/10) === Math.floor(shipOrigin/10);
-                        return id % 10 === shipOrigin % 10;
-                    });
-
-                    // Dodaj następne pole w TYM SAMYM kierunku na początek kolejki
-                    let nextLine = shotId + currentDir;
-                    if (isValidMove(nextLine)) {
-                        cpuHuntQueue.unshift(nextLine);
-                    }
-                    
-                    // Dodaj pole w przeciwną stronę od origin na koniec kolejki (bezpiecznik)
-                    let oppDir = (shipOrigin - shotId) > 0 ? (lockedAxis === 'hor' ? 1 : 10) : (lockedAxis === 'hor' ? -1 : -10);
-                    let otherEnd = shipOrigin + oppDir;
-                    if (isValidMove(otherEnd)) {
-                        cpuHuntQueue.push(otherEnd);
-                    }
-                    lastHit = shotId;
-                }
             }
+
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss');
-            playSound(sndMiss);
-            isPlayerTurn = true;
-            updateStatus();
-
-            // Jeśli spudłowaliśmy podczas dobijania, następny strzał musi być z drugiej strony origin
-            if (shipOrigin !== null && lockedAxis !== null) {
-                generateRescueQueue();
-            }
+            cell.classList.add('miss'); playSound(sndMiss);
+            isPlayerTurn = true; updateStatus();
         }
     }
 
-    function generateRescueQueue() {
-        if (shipOrigin === null) return;
-        let steps = lockedAxis === 'hor' ? [1, -1] : [10, -10];
-        cpuHuntQueue = [];
-        steps.forEach(s => {
-            let n = shipOrigin + s;
-            while(n >= 0 && n < 100 && playerBoard.querySelectorAll('.cell')[n].classList.contains('hit')) {
-                n += s;
-            }
-            if (isValidMove(n)) cpuHuntQueue.push(n);
-        });
-    }
-
-    function isValidMove(n) {
-        if (n < 0 || n > 99) return false;
-        const cell = playerBoard.querySelectorAll('.cell')[n];
-        if (cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return false;
+    // --- FUNKCJA WIDZENIA AI (Analiza Klastrów) ---
+    function getDynamicHuntShot() {
+        const cells = playerBoard.querySelectorAll('.cell');
+        let unsunkHits = [];
         
-        // Jeśli mamy oś, sprawdzaj czy pole do niej należy
-        if (lockedAxis === 'hor' && shipOrigin !== null) {
-            if (Math.floor(n/10) !== Math.floor(shipOrigin/10)) return false;
+        // AI szuka czerwonych krzyżyków, które jeszcze nie są zablokowane na stałe (sunk)
+        for(let i=0; i<100; i++) {
+            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) {
+                unsunkHits.push(i);
+            }
         }
-        if (lockedAxis === 'ver' && shipOrigin !== null) {
-            if (n % 10 !== shipOrigin % 10) return false;
+
+        if(unsunkHits.length === 0) return null; // Brak rannych statków
+
+        // Wybieramy pierwszy uszkodzony maszt i badamy jego całe zgrupowanie
+        let target = unsunkHits[0];
+        let cluster = [target];
+        let queue = [target];
+
+        while(queue.length > 0) {
+            let curr = queue.shift();
+            [curr-1, curr+1, curr-10, curr+10].forEach(n => {
+                if(unsunkHits.includes(n) && !cluster.includes(n)) {
+                    // Weryfikacja przeskoku przez boki planszy
+                    if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
+                    cluster.push(n); queue.push(n);
+                }
+            });
         }
-        return true;
+
+        let possibleMoves = [];
+        let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
+        let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
+
+        // Jeśli to jest wyraźna linia, atakujemy WYŁĄCZNIE końcówki tej linii
+        if (isHorLine) {
+            let min = Math.min(...cluster);
+            let max = Math.max(...cluster);
+            if (min % 10 > 0) possibleMoves.push(min - 1);
+            if (max % 10 < 9) possibleMoves.push(max + 1);
+        } else if (isVerLine) {
+            let min = Math.min(...cluster);
+            let max = Math.max(...cluster);
+            if (min >= 10) possibleMoves.push(min - 10);
+            if (max <= 89) possibleMoves.push(max + 10);
+        }
+
+        possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
+
+        // Plan zapasowy: Jeśli końce są zablokowane (np. stykające się statki)
+        if (possibleMoves.length === 0) {
+            cluster.forEach(c => {
+                if (c >= 10) possibleMoves.push(c - 10);
+                if (c <= 89) possibleMoves.push(c + 10);
+                if (c % 10 > 0) possibleMoves.push(c - 1);
+                if (c % 10 < 9) possibleMoves.push(c + 1);
+            });
+            possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
+        }
+
+        if (possibleMoves.length > 0) {
+            return possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+        }
+        return null;
     }
 
+    // --- MAPA PRAWDOPODOBIEŃSTWA ---
     function calculateBestMove() {
         let weights = new Array(100).fill(0);
         const cells = playerBoard.querySelectorAll('.cell');
 
         playerShipsAfloat.forEach(shipLen => {
             for (let i = 0; i < 100; i++) {
-                // Poziomo
                 if (i % 10 <= 10 - shipLen) {
                     let canFit = true;
                     for (let j = 0; j < shipLen; j++) {
-                        if (cells[i + j].classList.contains('miss') || cells[i + j].classList.contains('sunk')) {
-                            canFit = false; break;
-                        }
+                        if (cells[i + j].classList.contains('miss') || cells[i + j].classList.contains('sunk')) { canFit = false; break; }
                     }
-                    if (canFit) {
-                        for (let j = 0; j < shipLen; j++) {
-                            if (!cells[i + j].classList.contains('hit')) weights[i + j]++;
-                        }
-                    }
+                    if (canFit) for (let j = 0; j < shipLen; j++) weights[i + j]++;
                 }
-                // Pionowo
                 if (Math.floor(i / 10) <= 10 - shipLen) {
                     let canFit = true;
                     for (let j = 0; j < shipLen; j++) {
-                        if (cells[i + j * 10].classList.contains('miss') || cells[i + j * 10].classList.contains('sunk')) {
-                            canFit = false; break;
-                        }
+                        if (cells[i + j * 10].classList.contains('miss') || cells[i + j * 10].classList.contains('sunk')) { canFit = false; break; }
                     }
-                    if (canFit) {
-                        for (let j = 0; j < shipLen; j++) {
-                            if (!cells[i + j * 10].classList.contains('hit')) weights[i + j * 10]++;
-                        }
-                    }
+                    if (canFit) for (let j = 0; j < shipLen; j++) weights[i + j * 10]++;
                 }
             }
         });
@@ -346,12 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let maxWeight = -1;
         let bestMoves = [];
         availableCPUShots.forEach(i => {
-            if (weights[i] > maxWeight) {
-                maxWeight = weights[i];
-                bestMoves = [i];
-            } else if (weights[i] === maxWeight) {
-                bestMoves.push(i);
-            }
+            if (weights[i] > maxWeight) { maxWeight = weights[i]; bestMoves = [i]; }
+            else if (weights[i] === maxWeight) { bestMoves.push(i); }
         });
         return bestMoves[Math.floor(Math.random() * bestMoves.length)];
     }
@@ -360,6 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gameActive = false;
         statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
-        setTimeout(() => { alert(isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
+        setTimeout(() => { alert(isWin ? "ZWYCIĘSTWO! Opanowałeś morza!" : "Twoja flota spoczywa na dnie oceanu."); location.reload(); }, 500);
     }
 });
