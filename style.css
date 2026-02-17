@@ -1,128 +1,86 @@
 :root {
---water: #006994;
---wood: #5d4037;
---sand: #f4e4bc;
---cell-size: 40px;
+    --gold: #d4af37;
+    --parchment: #f4e4bc;
+    --pirate-red: #8b0000;
 }
 
 body {
-margin: 0;
-background: radial-gradient(circle, #1b263b 0%, #0d1b2a 100%);
-color: var(--sand);
-font-family: 'Special Elite', cursive;
-display: flex;
-justify-content: center;
-align-items: center;
-min-height: 100vh;
-    user-select: none; /* Zapobiega zaznaczaniu tekstu podczas przeciągania */
-    user-select: none;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Georgia', serif;
 }
 
-.overlay {
-position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-display: flex; justify-content: center; align-items: center; z-index: 100;
+#game-window {
+    width: 900px;
+    height: 600px;
+    background: #3e2723;
+    border: 8px solid #5d4037;
+    position: relative;
+    overflow: hidden;
+    color: var(--parchment);
 }
+
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.screen.active { display: flex; }
+
+/* KREATOR */
+.avatar-preview {
+    width: 150px;
+    height: 200px;
+    background: #d7b899;
+    border: 4px solid var(--gold);
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#hair-part { height: 40px; width: 100%; position: absolute; top: 0; }
+#clothes-part { height: 100px; width: 100%; position: absolute; bottom: 0; }
+
+.gold-btn, .menu-buttons button {
+    background: var(--gold);
+    border: 3px solid #b8860b;
+    padding: 10px 25px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 10px;
+    transition: 0.2s;
+}
+
+.gold-btn:hover { background: #fff; }
 
 .parchment {
-background: var(--sand); padding: 40px; border: 8px double var(--wood);
-color: var(--wood); text-align: center; border-radius: 10px;
-}
-
-h1 { font-family: 'Pirata One'; font-size: 4rem; margin: 0; }
-h3 { text-align: center; margin-bottom: 10px; font-size: 1.5rem; }
-.header { text-align: center; margin-bottom: 20px; }
-.header { text-align: center; margin-bottom: 20px; min-height: 100px; }
-
-button {
-background: var(--wood); color: white; border: none; padding: 15px 30px;
-font-family: 'Pirata One'; font-size: 1.5rem; cursor: pointer;
-border-radius: 5px; transition: 0.2s;
-}
-button:hover { background: #3e2723; transform: scale(1.05); }
-button.hidden { display: none !important; }
-
-.ocean { display: flex; gap: 50px; justify-content: center; align-items: flex-start; }
-.ocean { display: flex; gap: 40px; justify-content: center; align-items: flex-start; }
-.hidden { display: none !important; }
-
-/* PLANSZA */
-.grid {
-display: grid;
-grid-template-columns: repeat(10, var(--cell-size));
-grid-template-rows: repeat(10, var(--cell-size));
-background: var(--water);
-border: 4px solid var(--wood);
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    position: relative; /* Ważne do pozycjonowania statków */
-    position: relative;
-}
-
-.cell {
-width: var(--cell-size);
-height: var(--cell-size);
-    border: 1px solid rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.15);
-box-sizing: border-box;
-}
-
-/* STOCZNIA */
-.shipyard {
-    width: 300px;
-    min-height: 408px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 4px solid #8d6e63;
-    width: 250px;
-    min-height: 400px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid var(--wood);
-display: flex;
-flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    box-sizing: border-box;
-    gap: 15px;
-    padding: 20px;
-    align-items: center;
-}
-
-/* WYGLĄD STATKÓW */
-/* WYGLĄD STATKÓW - TERAZ BEZ LINII WEWNĘTRZNYCH */
-.ship-drag {
-    background: #8d6e63; /* Jasne drewno */
-    border: 2px solid #3e2723;
+    background: var(--parchment);
+    color: #2b1d0e;
+    padding: 30px;
     border-radius: 5px;
-    background: var(--wood);
-    border: 2px solid #2b1d19;
-cursor: grab;
-    display: flex;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-z-index: 10;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+    max-width: 600px;
+    text-align: center;
 }
 
-.ship-drag:active { cursor: grabbing; }
-
-/* Kawałki statku (kratki wizualne) */
-.ship-part {
-    width: var(--cell-size);
-    height: var(--cell-size);
-    border-right: 1px solid #5d4037;
-    box-sizing: border-box;
-.ship-drag.vertical {
-    /* Szerokość to 1 kratka, wysokość to długość * kratka */
+/* PLANSZE */
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 25px);
+    grid-template-rows: repeat(10, 25px);
+    gap: 1px;
+    background: #000;
+    border: 2px solid var(--gold);
 }
 
-.ship-drag.vertical { flex-direction: column; }
-.ship-drag.vertical .ship-part { border-right: none; border-bottom: 1px solid #5d4037; }
-
-/* Efekty Trafień (Dla mapy wroga) */
-.hit { background: #c62828 !important; position: relative; }
-.hit::after { content: '💥'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; }
-.miss { background: #bbdefb !important; opacity: 0.6; position: relative; }
-.miss::after { content: '✖'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #000; }
-.miss { background: rgba(187, 222, 250, 0.5) !important; position: relative; }
-.miss::after { content: '×'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: white; }
-
-/* Ukrycie statków na planszy wroga */
-.computer-grid .ship-placed { display: none; }
-.computer-grid .ship-drag { display: none !important; }
+.cell { width: 25px; height: 25px; background: #00695c; cursor: pointer; }
+.cell.ship { background: #4e342e; }
+.cell.hit { background: #d32f2f; }
+.cell.miss { background: #263238; }
