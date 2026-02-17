@@ -7,11 +7,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // AUDIO
-    const music = document.getElementById('bg-music');
-    const sndHit = document.getElementById('snd-hit');
-    const sndSink = document.getElementById('snd-sink');
-    const sndMiss = document.getElementById('snd-miss');
+    // --- NOWY SYSTEM AUDIO ---
+    // Gra automatycznie poszuka tych plików w folderze z Twoją grą.
+    const sndMiss = new Audio('splash.mp3'); // Dźwięk fali (pudło)
+    const sndHit = new Audio('cannon.mp3');  // Dźwięk armaty (trafienie)
+    const sndSink = new Audio('sink.mp3');   // Dźwięk zatopienia statku
+    const sndWin = new Audio('win.mp3');     // Fanfary zwycięstwa
+    const sndLose = new Audio('lose.mp3');   // Dźwięk przegranej
+    const music = new Audio('music.mp3');    // Muzyka w tle
+    music.loop = true;
+
+    // Funkcja do odtwarzania efektów (klonuje dźwięk, by można było strzelać seriami!)
+    function playEffect(audioObj) {
+        if (!audioObj) return;
+        let sound = audioObj.cloneNode(); 
+        sound.volume = 0.6;
+        sound.play().catch(() => console.log("Przeglądarka zablokowała dźwięk"));
+    }
 
     // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
@@ -30,17 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
-    function playSound(audioElement) {
-        if(!audioElement) return;
-        audioElement.volume = 0.4;
-        audioElement.currentTime = 0;
-        audioElement.play().catch(() => {});
-    }
-
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.1;
+        music.volume = 0.15;
         music.play().catch(() => {});
         initGame();
     });
@@ -167,16 +172,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
-                playSound(sndSink);
+                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
                 ship.coords.forEach(c => {
                     let targetCell = computerBoard.children[c];
                     targetCell.classList.add('sunk');
                     targetCell.style.backgroundColor = '#2c3e50'; 
                 });
-            } else playSound(sndHit);
+            } else {
+                playEffect(sndHit); // DŹWIĘK ARMATY (Trafienie)
+            }
             if (cpuHealth <= 0) endGame(true);
         } else {
-            cell.classList.add('miss'); playSound(sndMiss);
+            cell.classList.add('miss'); 
+            playEffect(sndMiss); // DŹWIĘK FALI (Pudło)
             isPlayerTurn = false; updateStatus();
             setTimeout(cpuAttack, 700);
         }
@@ -204,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
-                playSound(sndSink);
+                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
                 ship.coords.forEach(c => {
                     let targetCell = playerBoard.querySelectorAll('.cell')[c];
                     targetCell.classList.add('sunk');
@@ -213,13 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
             } else {
-                playSound(sndHit);
+                playEffect(sndHit); // DŹWIĘK ARMATY
             }
 
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss'); playSound(sndMiss);
+            cell.classList.add('miss'); 
+            playEffect(sndMiss); // DŹWIĘK FALI
             isPlayerTurn = true; updateStatus();
         }
     }
@@ -227,19 +236,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function getDynamicHuntShot() {
         const cells = playerBoard.querySelectorAll('.cell');
         let unsunkHits = [];
-        
         for(let i=0; i<100; i++) {
-            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) {
-                unsunkHits.push(i);
-            }
+            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) unsunkHits.push(i);
         }
-
         if(unsunkHits.length === 0) return null;
 
         let target = unsunkHits[0];
         let cluster = [target];
         let queue = [target];
-
         while(queue.length > 0) {
             let curr = queue.shift();
             [curr-1, curr+1, curr-10, curr+10].forEach(n => {
@@ -249,25 +253,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-
         let possibleMoves = [];
         let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
         let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
-
         if (isHorLine) {
-            let min = Math.min(...cluster);
-            let max = Math.max(...cluster);
+            let min = Math.min(...cluster); let max = Math.max(...cluster);
             if (min % 10 > 0) possibleMoves.push(min - 1);
             if (max % 10 < 9) possibleMoves.push(max + 1);
         } else if (isVerLine) {
-            let min = Math.min(...cluster);
-            let max = Math.max(...cluster);
+            let min = Math.min(...cluster); let max = Math.max(...cluster);
             if (min >= 10) possibleMoves.push(min - 10);
             if (max <= 89) possibleMoves.push(max + 10);
         }
-
         possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
-
         if (possibleMoves.length === 0) {
             cluster.forEach(c => {
                 if (c >= 10) possibleMoves.push(c - 10);
@@ -277,163 +275,124 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
         }
-
-        if (possibleMoves.length > 0) {
-            return possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-        }
-        return null;
+        return possibleMoves.length > 0 ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)] : null;
     }
 
     function calculateBestMove() {
         let weights = new Array(100).fill(0);
         const cells = playerBoard.querySelectorAll('.cell');
-
         playerShipsAfloat.forEach(shipLen => {
             for (let i = 0; i < 100; i++) {
                 if (i % 10 <= 10 - shipLen) {
-                    let canFit = true;
-                    for (let j = 0; j < shipLen; j++) {
-                        if (cells[i + j].classList.contains('miss') || cells[i + j].classList.contains('sunk')) { canFit = false; break; }
-                    }
-                    if (canFit) for (let j = 0; j < shipLen; j++) weights[i + j]++;
+                    let fit = true;
+                    for (let j = 0; j < shipLen; j++) if (cells[i+j].classList.contains('miss') || cells[i+j].classList.contains('sunk')) fit = false;
+                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j]++;
                 }
                 if (Math.floor(i / 10) <= 10 - shipLen) {
-                    let canFit = true;
-                    for (let j = 0; j < shipLen; j++) {
-                        if (cells[i + j * 10].classList.contains('miss') || cells[i + j * 10].classList.contains('sunk')) { canFit = false; break; }
-                    }
-                    if (canFit) for (let j = 0; j < shipLen; j++) weights[i + j * 10]++;
+                    let fit = true;
+                    for (let j = 0; j < shipLen; j++) if (cells[i+j*10].classList.contains('miss') || cells[i+j*10].classList.contains('sunk')) fit = false;
+                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j*10]++;
                 }
             }
         });
-
-        let maxWeight = -1;
-        let bestMoves = [];
+        let maxW = -1; let moves = [];
         availableCPUShots.forEach(i => {
-            if (weights[i] > maxWeight) { maxWeight = weights[i]; bestMoves = [i]; }
-            else if (weights[i] === maxWeight) { bestMoves.push(i); }
+            if (weights[i] > maxW) { maxW = weights[i]; moves = [i]; }
+            else if (weights[i] === maxW) moves.push(i);
         });
-        return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        return moves[Math.floor(Math.random() * moves.length)];
     }
 
-    // --- NOWY SYSTEM ZAKOŃCZENIA GRY ---
+    // --- ZAKOŃCZENIE GRY ---
     function endGame(isWin) {
         gameActive = false;
-        statusText.innerText = isWin ? "BITWA ZAKOŃCZONA!" : "BITWA ZAKOŃCZONA!";
-        statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
+        statusText.innerText = "KONIEC BITWY";
 
-        setTimeout(() => {
-            // 1. Odkrywamy niezatopione statki komputera
-            computerShips.forEach(ship => {
-                ship.coords.forEach(c => {
-                    const targetCell = computerBoard.children[c];
-                    // Jeśli kratka nie została trafiona ani zatopiona
-                    if (!targetCell.classList.contains('hit') && !targetCell.classList.contains('sunk')) {
-                        targetCell.style.backgroundColor = '#95a5a6'; // Szary kolor oznaczający ukryty statek
-                        targetCell.style.border = '2px dashed #7f8c8d';
-                    }
-                });
+        // Zatrzymanie muzyki w tle i puszczenie dźwięku Zwycięstwa/Porażki
+        music.pause();
+        if (isWin) {
+            playEffect(sndWin);
+        } else {
+            playEffect(sndLose);
+        }
+
+        computerShips.forEach(ship => {
+            ship.coords.forEach(c => {
+                const cell = computerBoard.children[c];
+                if (!cell.classList.contains('hit') && !cell.classList.contains('sunk')) {
+                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.6)';
+                    cell.style.border = '2px dashed #ecf0f1';
+                    cell.style.boxShadow = 'inset 0 0 10px rgba(0,0,0,0.5)';
+                }
             });
+        });
 
-            // 2. Tworzymy elegancki ekran końcowy (Overlay)
-            const overlay = document.createElement('div');
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100vw';
-            overlay.style.height = '100vh';
-            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
-            overlay.style.display = 'flex';
-            overlay.style.flexDirection = 'column';
-            overlay.style.justifyContent = 'center';
-            overlay.style.alignItems = 'center';
-            overlay.style.zIndex = '9999';
-            overlay.style.fontFamily = 'Arial, sans-serif';
+        const screen = document.createElement('div');
+        screen.id = "end-screen-overlay";
+        Object.assign(screen.style, {
+            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column',
+            justifyContent: 'center', alignItems: 'center', zIndex: '10000',
+            fontFamily: 'Impact, sans-serif', color: isWin ? '#4CAF50' : '#F44336'
+        });
 
-            // Tytuł
-            const title = document.createElement('h1');
-            title.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-            title.style.fontSize = '4rem';
-            title.style.color = isWin ? '#4CAF50' : '#F44336';
-            title.style.textShadow = '0px 0px 20px rgba(0,0,0,0.8)';
-            title.style.marginBottom = '40px';
-            title.style.textAlign = 'center';
+        const bigText = document.createElement('h1');
+        bigText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+        bigText.style.fontSize = '6rem';
+        bigText.style.margin = '0';
+        bigText.style.textShadow = '0 0 30px ' + (isWin ? '#4CAF50' : '#F44336');
 
-            // Kontener na przyciski
-            const btnContainer = document.createElement('div');
-            btnContainer.style.display = 'flex';
-            btnContainer.style.gap = '20px';
+        const subText = document.createElement('p');
+        subText.innerText = isWin ? "Ocean należy do Ciebie." : "Twoja flota zatonęła.";
+        subText.style.color = 'white';
+        subText.style.fontSize = '1.5rem';
+        subText.style.fontFamily = 'Arial';
 
-            // Przycisk "Zobacz planszę"
-            const viewBoardBtn = document.createElement('button');
-            viewBoardBtn.innerText = "Zobacz planszę";
-            viewBoardBtn.style.padding = '15px 30px';
-            viewBoardBtn.style.fontSize = '1.2rem';
-            viewBoardBtn.style.cursor = 'pointer';
-            viewBoardBtn.style.border = 'none';
-            viewBoardBtn.style.borderRadius = '8px';
-            viewBoardBtn.style.backgroundColor = '#3498db';
-            viewBoardBtn.style.color = 'white';
-            viewBoardBtn.style.fontWeight = 'bold';
-            viewBoardBtn.style.transition = '0.2s';
-            viewBoardBtn.onmouseover = () => viewBoardBtn.style.backgroundColor = '#2980b9';
-            viewBoardBtn.onmouseout = () => viewBoardBtn.style.backgroundColor = '#3498db';
+        const buttons = document.createElement('div');
+        buttons.style.marginTop = '40px';
+        buttons.style.display = 'flex';
+        buttons.style.gap = '20px';
 
-            // Przycisk "Zagraj ponownie"
-            const restartBtn = document.createElement('button');
-            restartBtn.innerText = "Zagraj ponownie";
-            restartBtn.style.padding = '15px 30px';
-            restartBtn.style.fontSize = '1.2rem';
-            restartBtn.style.cursor = 'pointer';
-            restartBtn.style.border = 'none';
-            restartBtn.style.borderRadius = '8px';
-            restartBtn.style.backgroundColor = '#e67e22';
-            restartBtn.style.color = 'white';
-            restartBtn.style.fontWeight = 'bold';
-            restartBtn.style.transition = '0.2s';
-            restartBtn.onmouseover = () => restartBtn.style.backgroundColor = '#d35400';
-            restartBtn.onmouseout = () => restartBtn.style.backgroundColor = '#e67e22';
+        const btnView = document.createElement('button');
+        btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
+        styleBtn(btnView, '#3498db');
+        btnView.onclick = () => {
+            screen.remove(); 
+            createMiniReset(); 
+        };
 
-            // Logika po kliknięciu "Zobacz planszę"
-            viewBoardBtn.addEventListener('click', () => {
-                overlay.style.display = 'none'; // Ukryj wielki ekran
-                createFloatingRestartButton();  // Stwórz mały przycisk na dole ekranu
-            });
+        const btnAgain = document.createElement('button');
+        btnAgain.innerText = "ZAGRAJ PONOWNIE";
+        styleBtn(btnAgain, '#e67e22');
+        btnAgain.onclick = () => location.reload();
 
-            // Logika po kliknięciu "Zagraj ponownie"
-            restartBtn.addEventListener('click', () => {
-                location.reload();
-            });
-
-            btnContainer.appendChild(viewBoardBtn);
-            btnContainer.appendChild(restartBtn);
-            overlay.appendChild(title);
-            overlay.appendChild(btnContainer);
-            document.body.appendChild(overlay);
-
-        }, 800); // 800ms opóźnienia, żebyś zdążył zobaczyć moment wybuchu ostatniego statku
+        buttons.appendChild(btnView);
+        buttons.appendChild(btnAgain);
+        screen.appendChild(bigText);
+        screen.appendChild(subText);
+        screen.appendChild(buttons);
+        document.body.appendChild(screen);
     }
 
-    // Pływający przycisk powrotu do gry po obejrzeniu planszy
-    function createFloatingRestartButton() {
-        const floatingBtn = document.createElement('button');
-        floatingBtn.innerText = "Zagraj ponownie";
-        floatingBtn.style.position = 'fixed';
-        floatingBtn.style.bottom = '30px';
-        floatingBtn.style.left = '50%';
-        floatingBtn.style.transform = 'translateX(-50%)';
-        floatingBtn.style.padding = '15px 40px';
-        floatingBtn.style.fontSize = '1.2rem';
-        floatingBtn.style.fontWeight = 'bold';
-        floatingBtn.style.backgroundColor = '#e67e22';
-        floatingBtn.style.color = 'white';
-        floatingBtn.style.border = 'none';
-        floatingBtn.style.borderRadius = '30px';
-        floatingBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-        floatingBtn.style.cursor = 'pointer';
-        floatingBtn.style.zIndex = '9999';
-        
-        floatingBtn.addEventListener('click', () => location.reload());
-        document.body.appendChild(floatingBtn);
+    function styleBtn(btn, color) {
+        Object.assign(btn.style, {
+            padding: '15px 30px', fontSize: '1.2rem', fontWeight: 'bold',
+            cursor: 'pointer', border: 'none', borderRadius: '50px',
+            backgroundColor: color, color: 'white', transition: '0.3s'
+        });
+        btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
+        btn.onmouseout = () => btn.style.transform = 'scale(1)';
+    }
+
+    function createMiniReset() {
+        const mini = document.createElement('button');
+        mini.innerText = "ZAGRAJ PONOWNIE";
+        styleBtn(mini, '#e67e22');
+        Object.assign(mini.style, {
+            position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+            zIndex: '9999', boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+        });
+        mini.onclick = () => location.reload();
+        document.body.appendChild(mini);
     }
 });
