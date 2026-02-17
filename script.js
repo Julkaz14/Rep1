@@ -7,23 +7,116 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // --- NOWY SYSTEM AUDIO ---
-    // Gra automatycznie poszuka tych plików w folderze z Twoją grą.
-    const sndMiss = new Audio('splash.mp3'); // Dźwięk fali (pudło)
-    const sndHit = new Audio('cannon.mp3');  // Dźwięk armaty (trafienie)
-    const sndSink = new Audio('sink.mp3');   // Dźwięk zatopienia statku
-    const sndWin = new Audio('win.mp3');     // Fanfary zwycięstwa
-    const sndLose = new Audio('lose.mp3');   // Dźwięk przegranej
-    const music = new Audio('music.mp3');    // Muzyka w tle
-    music.loop = true;
+    // --- SYNTEZATOR DŹWIĘKÓW (Bez żadnych plików .mp3!) ---
+    let audioCtx;
 
-    // Funkcja do odtwarzania efektów (klonuje dźwięk, by można było strzelać seriami!)
-    function playEffect(audioObj) {
-        if (!audioObj) return;
-        let sound = audioObj.cloneNode(); 
-        sound.volume = 0.6;
-        sound.play().catch(() => console.log("Przeglądarka zablokowała dźwięk"));
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
     }
+
+    // Generator szumu (dla pudła i wybuchów)
+    function playNoise(duration, type, freq, vol) {
+        if (!audioCtx) return;
+        const bufferSize = audioCtx.sampleRate * duration;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = type;
+        filter.frequency.value = freq;
+        const gain = audioCtx.createGain();
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        noise.start();
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    }
+
+    // Generator tonów (dla armaty i melodyjek)
+    function playTone(freq, type, duration, vol) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // Konkretne efekty dźwiękowe
+    function soundMiss() { 
+        // Szum wysokich częstotliwości - imituje plusk wody
+        playNoise(0.3, 'highpass', 1000, 0.5); 
+    }
+    
+    function soundHit() { 
+        // Niskie tąpnięcie i szum - imituje wystrzał armaty
+        playTone(150, 'square', 0.4, 0.8);
+        playNoise(0.4, 'lowpass', 600, 1); 
+    }
+    
+    function soundSink() { 
+        // Dłuższy, głębszy dźwięk - zatopienie statku
+        playTone(80, 'sawtooth', 0.8, 1);
+        playNoise(0.8, 'lowpass', 300, 1.5); 
+    }
+
+    function soundWin() {
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        const playNote = (f, time, d) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = f;
+            osc.start(time);
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + d);
+            osc.stop(time + d);
+        };
+        // Wesołe fanfary zwycięstwa (akordy)
+        playNote(440, t, 0.2);       // A4
+        playNote(554, t + 0.2, 0.2); // C#5
+        playNote(659, t + 0.4, 0.2); // E5
+        playNote(880, t + 0.6, 0.6); // A5
+    }
+
+    function soundLose() {
+        if (!audioCtx) return;
+        const t = audioCtx.currentTime;
+        const playNote = (f, time, d) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = f;
+            osc.start(time);
+            gain.gain.setValueAtTime(0.5, time);
+            gain.gain.linearRampToValueAtTime(0.01, time + d);
+            osc.stop(time + d);
+        };
+        // Smutna opadająca melodia przegranej
+        playNote(300, t, 0.4);
+        playNote(280, t + 0.4, 0.4);
+        playNote(260, t + 0.8, 0.4);
+        playNote(220, t + 1.2, 1.0);
+    }
+    // --------------------------------------------------------
 
     // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
@@ -43,10 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     playBtn.addEventListener('click', () => {
+        initAudio(); // Odblokowanie dźwięków w przeglądarce po kliknięciu
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.15;
-        music.play().catch(() => {});
         initGame();
     });
 
@@ -172,19 +264,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
-                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
+                soundSink(); // Dźwięk zatopienia
                 ship.coords.forEach(c => {
                     let targetCell = computerBoard.children[c];
                     targetCell.classList.add('sunk');
                     targetCell.style.backgroundColor = '#2c3e50'; 
                 });
             } else {
-                playEffect(sndHit); // DŹWIĘK ARMATY (Trafienie)
+                soundHit(); // Dźwięk armaty (trafienie)
             }
             if (cpuHealth <= 0) endGame(true);
         } else {
             cell.classList.add('miss'); 
-            playEffect(sndMiss); // DŹWIĘK FALI (Pudło)
+            soundMiss(); // Dźwięk plusku fali (pudło)
             isPlayerTurn = false; updateStatus();
             setTimeout(cpuAttack, 700);
         }
@@ -212,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
-                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
+                soundSink(); // Dźwięk zatopienia
                 ship.coords.forEach(c => {
                     let targetCell = playerBoard.querySelectorAll('.cell')[c];
                     targetCell.classList.add('sunk');
@@ -221,14 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
             } else {
-                playEffect(sndHit); // DŹWIĘK ARMATY
+                soundHit(); // Dźwięk armaty
             }
 
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
             cell.classList.add('miss'); 
-            playEffect(sndMiss); // DŹWIĘK FALI
+            soundMiss(); // Dźwięk plusku fali
             isPlayerTurn = true; updateStatus();
         }
     }
@@ -308,12 +400,11 @@ document.addEventListener('DOMContentLoaded', () => {
         gameActive = false;
         statusText.innerText = "KONIEC BITWY";
 
-        // Zatrzymanie muzyki w tle i puszczenie dźwięku Zwycięstwa/Porażki
-        music.pause();
+        // ODEGRANIE DŹWIĘKU WYGRANEJ LUB PRZEGRANEJ
         if (isWin) {
-            playEffect(sndWin);
+            soundWin();
         } else {
-            playEffect(sndLose);
+            soundLose();
         }
 
         computerShips.forEach(ship => {
