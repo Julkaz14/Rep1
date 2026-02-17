@@ -182,17 +182,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- CZYSTA INTELIGENCJA AI ---
     function cpuAttack() {
         if (!gameActive) return;
 
-        // Krok 1: Decyzja, gdzie strzelać na podstawie tego, co widać na planszy
         let shotId = getDynamicHuntShot();
         if (shotId === null) {
-            shotId = calculateBestMove(); // PDM jeśli nie ma żadnych niezakończonych trafień
+            shotId = calculateBestMove();
         }
 
-        // Zabezpieczenie pętli
         if (!availableCPUShots.includes(shotId)) {
             if (gameActive) cpuAttack();
             return;
@@ -207,12 +204,11 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
-                // EFEKT ZATOPIENIA: statek zostaje oznaczony ostatecznie
                 playSound(sndSink);
                 ship.coords.forEach(c => {
                     let targetCell = playerBoard.querySelectorAll('.cell')[c];
                     targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; // Zdecydowana wizualna zmiana
+                    targetCell.style.backgroundColor = '#2c3e50'; 
                 });
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
@@ -228,21 +224,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- FUNKCJA WIDZENIA AI (Analiza Klastrów) ---
     function getDynamicHuntShot() {
         const cells = playerBoard.querySelectorAll('.cell');
         let unsunkHits = [];
         
-        // AI szuka czerwonych krzyżyków, które jeszcze nie są zablokowane na stałe (sunk)
         for(let i=0; i<100; i++) {
             if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) {
                 unsunkHits.push(i);
             }
         }
 
-        if(unsunkHits.length === 0) return null; // Brak rannych statków
+        if(unsunkHits.length === 0) return null;
 
-        // Wybieramy pierwszy uszkodzony maszt i badamy jego całe zgrupowanie
         let target = unsunkHits[0];
         let cluster = [target];
         let queue = [target];
@@ -251,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let curr = queue.shift();
             [curr-1, curr+1, curr-10, curr+10].forEach(n => {
                 if(unsunkHits.includes(n) && !cluster.includes(n)) {
-                    // Weryfikacja przeskoku przez boki planszy
                     if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
                     cluster.push(n); queue.push(n);
                 }
@@ -262,7 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
         let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
 
-        // Jeśli to jest wyraźna linia, atakujemy WYŁĄCZNIE końcówki tej linii
         if (isHorLine) {
             let min = Math.min(...cluster);
             let max = Math.max(...cluster);
@@ -277,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
 
-        // Plan zapasowy: Jeśli końce są zablokowane (np. stykające się statki)
         if (possibleMoves.length === 0) {
             cluster.forEach(c => {
                 if (c >= 10) possibleMoves.push(c - 10);
@@ -294,7 +284,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // --- MAPA PRAWDOPODOBIEŃSTWA ---
     function calculateBestMove() {
         let weights = new Array(100).fill(0);
         const cells = playerBoard.querySelectorAll('.cell');
@@ -327,10 +316,124 @@ document.addEventListener('DOMContentLoaded', () => {
         return bestMoves[Math.floor(Math.random() * bestMoves.length)];
     }
 
+    // --- NOWY SYSTEM ZAKOŃCZENIA GRY ---
     function endGame(isWin) {
         gameActive = false;
-        statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+        statusText.innerText = isWin ? "BITWA ZAKOŃCZONA!" : "BITWA ZAKOŃCZONA!";
         statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
-        setTimeout(() => { alert(isWin ? "ZWYCIĘSTWO! Opanowałeś morza!" : "Twoja flota spoczywa na dnie oceanu."); location.reload(); }, 500);
+
+        setTimeout(() => {
+            // 1. Odkrywamy niezatopione statki komputera
+            computerShips.forEach(ship => {
+                ship.coords.forEach(c => {
+                    const targetCell = computerBoard.children[c];
+                    // Jeśli kratka nie została trafiona ani zatopiona
+                    if (!targetCell.classList.contains('hit') && !targetCell.classList.contains('sunk')) {
+                        targetCell.style.backgroundColor = '#95a5a6'; // Szary kolor oznaczający ukryty statek
+                        targetCell.style.border = '2px dashed #7f8c8d';
+                    }
+                });
+            });
+
+            // 2. Tworzymy elegancki ekran końcowy (Overlay)
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100vw';
+            overlay.style.height = '100vh';
+            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+            overlay.style.display = 'flex';
+            overlay.style.flexDirection = 'column';
+            overlay.style.justifyContent = 'center';
+            overlay.style.alignItems = 'center';
+            overlay.style.zIndex = '9999';
+            overlay.style.fontFamily = 'Arial, sans-serif';
+
+            // Tytuł
+            const title = document.createElement('h1');
+            title.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+            title.style.fontSize = '4rem';
+            title.style.color = isWin ? '#4CAF50' : '#F44336';
+            title.style.textShadow = '0px 0px 20px rgba(0,0,0,0.8)';
+            title.style.marginBottom = '40px';
+            title.style.textAlign = 'center';
+
+            // Kontener na przyciski
+            const btnContainer = document.createElement('div');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.gap = '20px';
+
+            // Przycisk "Zobacz planszę"
+            const viewBoardBtn = document.createElement('button');
+            viewBoardBtn.innerText = "Zobacz planszę";
+            viewBoardBtn.style.padding = '15px 30px';
+            viewBoardBtn.style.fontSize = '1.2rem';
+            viewBoardBtn.style.cursor = 'pointer';
+            viewBoardBtn.style.border = 'none';
+            viewBoardBtn.style.borderRadius = '8px';
+            viewBoardBtn.style.backgroundColor = '#3498db';
+            viewBoardBtn.style.color = 'white';
+            viewBoardBtn.style.fontWeight = 'bold';
+            viewBoardBtn.style.transition = '0.2s';
+            viewBoardBtn.onmouseover = () => viewBoardBtn.style.backgroundColor = '#2980b9';
+            viewBoardBtn.onmouseout = () => viewBoardBtn.style.backgroundColor = '#3498db';
+
+            // Przycisk "Zagraj ponownie"
+            const restartBtn = document.createElement('button');
+            restartBtn.innerText = "Zagraj ponownie";
+            restartBtn.style.padding = '15px 30px';
+            restartBtn.style.fontSize = '1.2rem';
+            restartBtn.style.cursor = 'pointer';
+            restartBtn.style.border = 'none';
+            restartBtn.style.borderRadius = '8px';
+            restartBtn.style.backgroundColor = '#e67e22';
+            restartBtn.style.color = 'white';
+            restartBtn.style.fontWeight = 'bold';
+            restartBtn.style.transition = '0.2s';
+            restartBtn.onmouseover = () => restartBtn.style.backgroundColor = '#d35400';
+            restartBtn.onmouseout = () => restartBtn.style.backgroundColor = '#e67e22';
+
+            // Logika po kliknięciu "Zobacz planszę"
+            viewBoardBtn.addEventListener('click', () => {
+                overlay.style.display = 'none'; // Ukryj wielki ekran
+                createFloatingRestartButton();  // Stwórz mały przycisk na dole ekranu
+            });
+
+            // Logika po kliknięciu "Zagraj ponownie"
+            restartBtn.addEventListener('click', () => {
+                location.reload();
+            });
+
+            btnContainer.appendChild(viewBoardBtn);
+            btnContainer.appendChild(restartBtn);
+            overlay.appendChild(title);
+            overlay.appendChild(btnContainer);
+            document.body.appendChild(overlay);
+
+        }, 800); // 800ms opóźnienia, żebyś zdążył zobaczyć moment wybuchu ostatniego statku
+    }
+
+    // Pływający przycisk powrotu do gry po obejrzeniu planszy
+    function createFloatingRestartButton() {
+        const floatingBtn = document.createElement('button');
+        floatingBtn.innerText = "Zagraj ponownie";
+        floatingBtn.style.position = 'fixed';
+        floatingBtn.style.bottom = '30px';
+        floatingBtn.style.left = '50%';
+        floatingBtn.style.transform = 'translateX(-50%)';
+        floatingBtn.style.padding = '15px 40px';
+        floatingBtn.style.fontSize = '1.2rem';
+        floatingBtn.style.fontWeight = 'bold';
+        floatingBtn.style.backgroundColor = '#e67e22';
+        floatingBtn.style.color = 'white';
+        floatingBtn.style.border = 'none';
+        floatingBtn.style.borderRadius = '30px';
+        floatingBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+        floatingBtn.style.cursor = 'pointer';
+        floatingBtn.style.zIndex = '9999';
+        
+        floatingBtn.addEventListener('click', () => location.reload());
+        document.body.appendChild(floatingBtn);
     }
 });
