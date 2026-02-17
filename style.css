@@ -1,86 +1,122 @@
-:root {
-    --gold: #d4af37;
-    --parchment: #f4e4bc;
-    --pirate-red: #8b0000;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const playerBoardContainer = document.querySelector('#player-board');
+    const computerBoardContainer = document.querySelector('#computer-board');
+    const messageDisplay = document.querySelector('#message');
+    const startBtn = document.querySelector('#start-game-btn');
 
-body {
-    background: #1a1a1a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    font-family: 'Georgia', serif;
-}
+    const width = 10;
+    const playerCells = [];
+    const computerCells = [];
+    let isGameOver = false;
+    let currentPlayer = 'user';
 
-#game-window {
-    width: 900px;
-    height: 600px;
-    background: #3e2723;
-    border: 8px solid #5d4037;
-    position: relative;
-    overflow: hidden;
-    color: var(--parchment);
-}
+    // Konfiguracja statków (nazwa i długość)
+    const shipArray = [
+        { name: 'destroyer', size: 2 },
+        { name: 'submarine', size: 3 },
+        { name: 'cruiser', size: 3 },
+        { name: 'battleship', size: 4 },
+        { name: 'carrier', size: 5 }
+    ];
 
-.screen {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px;
-    height: 100%;
-    box-sizing: border-box;
-}
+    // 1. Tworzenie plansz
+    function createBoard(container, cells) {
+        for (let i = 0; i < width * width; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.id = i;
+            container.appendChild(cell);
+            cells.push(cell);
+        }
+    }
 
-.screen.active { display: flex; }
+    createBoard(playerBoardContainer, playerCells);
+    createBoard(computerBoardContainer, computerCells);
 
-/* KREATOR */
-.avatar-preview {
-    width: 150px;
-    height: 200px;
-    background: #d7b899;
-    border: 4px solid var(--gold);
-    position: relative;
-    margin-bottom: 20px;
-}
+    // 2. Losowe rozmieszczanie statków
+    function generate(boardCells, ship) {
+        let randomDirection = Math.floor(Math.random() * 2); // 0 - poziomo, 1 - pionowo
+        let current = boardCells;
+        let direction = (randomDirection === 0) ? 1 : width;
+        let randomStart = Math.abs(Math.floor(Math.random() * boardCells.length - (ship.size * direction)));
 
-#hair-part { height: 40px; width: 100%; position: absolute; top: 0; }
-#clothes-part { height: 100px; width: 100%; position: absolute; bottom: 0; }
+        const isTaken = Array.from({length: ship.size}, (_, i) => randomStart + i * direction)
+                            .some(index => boardCells[index].classList.contains('ship'));
+        
+        const isAtRightEdge = randomDirection === 0 && Array.from({length: ship.size}, (_, i) => randomStart + i)
+                                                        .some(index => index % width === width - 1);
+        const isAtLeftEdge = randomDirection === 0 && Array.from({length: ship.size}, (_, i) => randomStart + i)
+                                                        .some(index => index % width === 0);
 
-.gold-btn, .menu-buttons button {
-    background: var(--gold);
-    border: 3px solid #b8860b;
-    padding: 10px 25px;
-    font-weight: bold;
-    cursor: pointer;
-    margin: 10px;
-    transition: 0.2s;
-}
+        if (!isTaken && !isAtRightEdge && !isAtLeftEdge) {
+            for (let i = 0; i < ship.size; i++) {
+                boardCells[randomStart + i * direction].classList.add('ship');
+            }
+        } else {
+            generate(boardCells, ship); // Próbuj ponownie, jeśli miejsce zajęte
+        }
+    }
 
-.gold-btn:hover { background: #fff; }
+    // Rozmieść statki dla obu stron
+    shipArray.forEach(ship => generate(playerCells, ship));
+    shipArray.forEach(ship => generate(computerCells, ship));
 
-.parchment {
-    background: var(--parchment);
-    color: #2b1d0e;
-    padding: 30px;
-    border-radius: 5px;
-    box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
-    max-width: 600px;
-    text-align: center;
-}
+    // 3. Logika strzału gracza
+    function handlePlayerClick(e) {
+        if (isGameOver || currentPlayer !== 'user') return;
+        const cell = e.target;
+        if (cell.classList.contains('hit') || cell.classList.contains('miss')) return;
 
-/* PLANSZE */
-.board {
-    display: grid;
-    grid-template-columns: repeat(10, 25px);
-    grid-template-rows: repeat(10, 25px);
-    gap: 1px;
-    background: #000;
-    border: 2px solid var(--gold);
-}
+        if (cell.classList.contains('ship')) {
+            cell.classList.add('hit');
+            messageDisplay.innerText = "TRAFIONY! Strzelaj dalej!";
+        } else {
+            cell.classList.add('miss');
+            messageDisplay.innerText = "Pudło! Kolej komputera.";
+            currentPlayer = 'computer';
+            setTimeout(computerTurn, 800);
+        }
+        checkGameOver();
+    }
 
-.cell { width: 25px; height: 25px; background: #00695c; cursor: pointer; }
-.cell.ship { background: #4e342e; }
-.cell.hit { background: #d32f2f; }
-.cell.miss { background: #263238; }
+    // 4. Logika strzału komputera (Proste AI)
+    function computerTurn() {
+        if (isGameOver) return;
+        let random = Math.floor(Math.random() * playerCells.length);
+        
+        if (!playerCells[random].classList.contains('hit') && !playerCells[random].classList.contains('miss')) {
+            if (playerCells[random].classList.contains('ship')) {
+                playerCells[random].classList.add('hit');
+                messageDisplay.innerText = "Komputer trafił! Strzela znowu.";
+                setTimeout(computerTurn, 800);
+            } else {
+                playerCells[random].classList.add('miss');
+                messageDisplay.innerText = "Twoja kolej!";
+                currentPlayer = 'user';
+            }
+        } else {
+            computerTurn();
+        }
+        checkGameOver();
+    }
+
+    // 5. Sprawdzanie końca gry
+    function checkGameOver() {
+        const playerHits = playerCells.filter(cell => cell.classList.contains('hit')).length;
+        const computerHits = computerCells.filter(cell => cell.classList.contains('hit')).length;
+        const totalShipCells = shipArray.reduce((acc, ship) => acc + ship.size, 0);
+
+        if (playerHits === totalShipCells) {
+            messageDisplay.innerText = "GRATULACJE! WYGRAŁEŚ!";
+            isGameOver = true;
+        }
+        if (computerHits === totalShipCells) {
+            messageDisplay.innerText = "PRZEGRAŁEŚ! Komputer zatopił Twoją flotę.";
+            isGameOver = true;
+        }
+    }
+
+    // Event Listeners
+    computerCells.forEach(cell => cell.addEventListener('click', handlePlayerClick));
+    startBtn.addEventListener('click', () => location.reload());
+});
