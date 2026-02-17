@@ -2,12 +2,10 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bitwa Morska</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div id="main-menu" class="overlay">
         <div class="menu-box">
             <h1>Bitwa Morska</h1>
@@ -16,33 +14,26 @@
         </div>
     </div>
 
-    <div id="game-ui" class="game-container hidden">
-        <div class="header" style="text-align: center;">
-            <h2 id="status">Kapitanie, rozmieść okręty!</h2>
-            <button id="start-battle" class="hidden">OGNIA!</button>
-        </div>
-
-        <div class="battlefield">
-            <div class="board-section">
+    <div id="game-ui" class="overlay hidden">
+        <h2 id="status">Kapitanie, rozmieść okręty!</h2>
+        <div class="battlefield" style="display: flex; gap: 40px; flex-wrap: wrap;">
+            <div>
                 <h3>Twoja Flota</h3>
                 <div id="player-board" class="grid"></div>
             </div>
-
-            <div id="shipyard-section" class="board-section">
+            <div id="shipyard-section">
                 <h3>Stocznia</h3>
-                <div id="shipyard"></div>
+                <div id="shipyard" class="shipyard"></div>
+                <button id="start-battle" class="hidden">OGNIA!</button>
             </div>
-
-            <div id="enemy-section" class="board-section hidden">
+            <div id="enemy-section" class="hidden">
                 <h3>Wody Wroga</h3>
                 <div id="computer-board" class="grid"></div>
             </div>
         </div>
     </div>
 
-    <audio id="bg-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" type="audio/mpeg">
-    </audio>
+    <audio id="bg-music" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"></audio>
     <audio id="snd-hit" src="https://actions.google.com/sounds/v1/weapons/retro_impact_hit.ogg"></audio>
     <audio id="snd-sink" src="https://actions.google.com/sounds/v1/explosions/explosion_and_debris.ogg"></audio>
     <audio id="snd-miss" src="https://actions.google.com/sounds/v1/water/water_splash.ogg"></audio>
