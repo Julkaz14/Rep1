@@ -7,23 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // --- NOWY SYSTEM AUDIO ---
-    // Gra automatycznie poszuka tych plików w folderze z Twoją grą.
-    const sndMiss = new Audio('splash.mp3'); // Dźwięk fali (pudło)
-    const sndHit = new Audio('cannon.mp3');  // Dźwięk armaty (trafienie)
-    const sndSink = new Audio('sink.mp3');   // Dźwięk zatopienia statku
-    const sndWin = new Audio('win.mp3');     // Fanfary zwycięstwa
-    const sndLose = new Audio('lose.mp3');   // Dźwięk przegranej
-    const music = new Audio('music.mp3');    // Muzyka w tle
-    music.loop = true;
-
-    // Funkcja do odtwarzania efektów (klonuje dźwięk, by można było strzelać seriami!)
-    function playEffect(audioObj) {
-        if (!audioObj) return;
-        let sound = audioObj.cloneNode(); 
-        sound.volume = 0.6;
-        sound.play().catch(() => console.log("Przeglądarka zablokowała dźwięk"));
-    }
+    // AUDIO
+    const music = document.getElementById('bg-music');
+    const sndHit = document.getElementById('snd-hit');
+    const sndSink = document.getElementById('snd-sink');
+    const sndMiss = document.getElementById('snd-miss');
 
     // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
@@ -42,10 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
+    function playSound(audioElement) {
+        if(!audioElement) return;
+        audioElement.volume = 0.4;
+        audioElement.currentTime = 0;
+        audioElement.play().catch(() => {});
+    }
+
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.15;
+        music.volume = 0.1;
         music.play().catch(() => {});
         initGame();
     });
@@ -172,19 +167,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
-                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
+                playSound(sndSink);
                 ship.coords.forEach(c => {
                     let targetCell = computerBoard.children[c];
                     targetCell.classList.add('sunk');
                     targetCell.style.backgroundColor = '#2c3e50'; 
                 });
-            } else {
-                playEffect(sndHit); // DŹWIĘK ARMATY (Trafienie)
-            }
+            } else playSound(sndHit);
             if (cpuHealth <= 0) endGame(true);
         } else {
-            cell.classList.add('miss'); 
-            playEffect(sndMiss); // DŹWIĘK FALI (Pudło)
+            cell.classList.add('miss'); playSound(sndMiss);
             isPlayerTurn = false; updateStatus();
             setTimeout(cpuAttack, 700);
         }
@@ -212,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
-                playEffect(sndSink); // DŹWIĘK ZATOPIENIA
+                playSound(sndSink);
                 ship.coords.forEach(c => {
                     let targetCell = playerBoard.querySelectorAll('.cell')[c];
                     targetCell.classList.add('sunk');
@@ -221,14 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
             } else {
-                playEffect(sndHit); // DŹWIĘK ARMATY
+                playSound(sndHit);
             }
 
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss'); 
-            playEffect(sndMiss); // DŹWIĘK FALI
+            cell.classList.add('miss'); playSound(sndMiss);
             isPlayerTurn = true; updateStatus();
         }
     }
@@ -303,19 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return moves[Math.floor(Math.random() * moves.length)];
     }
 
-    // --- ZAKOŃCZENIE GRY ---
+    // --- REWOLUCJA W ZAKOŃCZENIU GRY ---
     function endGame(isWin) {
         gameActive = false;
         statusText.innerText = "KONIEC BITWY";
 
-        // Zatrzymanie muzyki w tle i puszczenie dźwięku Zwycięstwa/Porażki
-        music.pause();
-        if (isWin) {
-            playEffect(sndWin);
-        } else {
-            playEffect(sndLose);
-        }
-
+        // 1. Natychmiastowe pokazanie statków wroga (szare duchy)
         computerShips.forEach(ship => {
             ship.coords.forEach(c => {
                 const cell = computerBoard.children[c];
@@ -327,6 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        // 2. Tworzenie Dużego Napisu na środku (bez ALERT)
         const screen = document.createElement('div');
         screen.id = "end-screen-overlay";
         Object.assign(screen.style, {
@@ -357,8 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
         styleBtn(btnView, '#3498db');
         btnView.onclick = () => {
-            screen.remove(); 
-            createMiniReset(); 
+            screen.remove(); // Zdejmuje zasłonę
+            createMiniReset(); // Dodaje mały przycisk na dole
         };
 
         const btnAgain = document.createElement('button');
