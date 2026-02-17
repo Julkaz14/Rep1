@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
@@ -7,13 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // AUDIO
     const music = document.getElementById('bg-music');
     const sndHit = document.getElementById('snd-hit');
     const sndSink = document.getElementById('snd-sink');
     const sndMiss = document.getElementById('snd-miss');
 
-    // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
     const totalHealth = shipTypes.reduce((a, b) => a + b, 0); 
     
@@ -27,8 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let isPlayerTurn = true;
 
-    // AI
+    // --- LOGIKA AI: APEX PREDATOR ---
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
+    let cpuHuntQueue = [];
+    let shipOrigin = null;  // Pierwsze trafienie w serii
+    let lastHit = null;     // Ostatnie trafienie w serii
+    let lockedAxis = null;  // 'hor' lub 'ver'
+    let currentDir = null;  // Kierunek aktualnego ataku: -1, 1, -10, 10
 
     function playSound(audioElement) {
         if(!audioElement) return;
@@ -37,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audioElement.play().catch(() => {});
     }
 
+    // --- START I UI ---
     playBtn.addEventListener('click', () => {
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
@@ -162,17 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return;
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
                 playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = computerBoard.children[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
+                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             } else playSound(sndHit);
             if (cpuHealth <= 0) endGame(true);
         } else {
@@ -182,14 +181,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- LOGIKA AI: ABSOLUTNIE BEZLITOSNA ---
     function cpuAttack() {
         if (!gameActive) return;
 
-        let shotId = getDynamicHuntShot();
-        if (shotId === null) {
-            shotId = calculateBestMove();
+        let shotId;
+
+        // Jeśli mamy namierzony cel, nie strzelamy nigdzie indziej
+        if (cpuHuntQueue.length > 0) {
+            shotId = cpuHuntQueue.shift();
+        } else {
+            // Brak celów w kolejce, a shipOrigin nie jest nullem? 
+            // To znaczy, że spudłowaliśmy na jednym końcu, wracamy do początku
+            if (shipOrigin !== null) {
+                generateRescueQueue();
+                if (cpuHuntQueue.length > 0) shotId = cpuHuntQueue.shift();
+                else shotId = calculateBestMove();
+            } else {
+                shotId = calculateBestMove();
+            }
         }
 
+        // Zabezpieczenie przed strzałem w to samo miejsce
         if (!availableCPUShots.includes(shotId)) {
             if (gameActive) cpuAttack();
             return;
@@ -204,180 +217,149 @@ document.addEventListener('DOMContentLoaded', () => {
             playerHealth--;
 
             if (++ship.hits === ship.len) {
+                // ZATOPIONY - Pełny reset, powrót do mapy prawdopodobieństwa
                 playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = playerBoard.querySelectorAll('.cell')[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
+                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
                 const idx = playerShipsAfloat.indexOf(ship.len);
                 if (idx > -1) playerShipsAfloat.splice(idx, 1);
+                
+                shipOrigin = null; lastHit = null; lockedAxis = null; currentDir = null;
+                cpuHuntQueue = [];
             } else {
+                // TRAFIONY - Kontynuacja egzekucji
                 playSound(sndHit);
-            }
+                if (shipOrigin === null) {
+                    // Pierwsze trafienie: badaj boki
+                    shipOrigin = shotId;
+                    lastHit = shotId;
+                    cpuHuntQueue = [shotId-10, shotId+10, shotId-1, shotId+1].filter(n => isValidMove(n));
+                } else {
+                    // Kolejne trafienie: BLOKADA OSI
+                    if (!lockedAxis) {
+                        lockedAxis = Math.abs(shotId - shipOrigin) < 10 ? 'hor' : 'ver';
+                    }
+                    
+                    // Ustal kierunek i czyść błędy (strzały w boki)
+                    currentDir = shotId - lastHit;
+                    
+                    // Usuń z kolejki wszystko co nie leży na tej osi
+                    cpuHuntQueue = cpuHuntQueue.filter(id => {
+                        if (lockedAxis === 'hor') return Math.floor(id/10) === Math.floor(shipOrigin/10);
+                        return id % 10 === shipOrigin % 10;
+                    });
 
+                    // Dodaj następne pole w TYM SAMYM kierunku na początek kolejki
+                    let nextLine = shotId + currentDir;
+                    if (isValidMove(nextLine)) {
+                        cpuHuntQueue.unshift(nextLine);
+                    }
+                    
+                    // Dodaj pole w przeciwną stronę od origin na koniec kolejki (bezpiecznik)
+                    let oppDir = (shipOrigin - shotId) > 0 ? (lockedAxis === 'hor' ? 1 : 10) : (lockedAxis === 'hor' ? -1 : -10);
+                    let otherEnd = shipOrigin + oppDir;
+                    if (isValidMove(otherEnd)) {
+                        cpuHuntQueue.push(otherEnd);
+                    }
+                    lastHit = shotId;
+                }
+            }
             if (playerHealth <= 0) endGame(false);
             else setTimeout(cpuAttack, 600);
         } else {
-            cell.classList.add('miss'); playSound(sndMiss);
-            isPlayerTurn = true; updateStatus();
+            cell.classList.add('miss');
+            playSound(sndMiss);
+            isPlayerTurn = true;
+            updateStatus();
+
+            // Jeśli spudłowaliśmy podczas dobijania, następny strzał musi być z drugiej strony origin
+            if (shipOrigin !== null && lockedAxis !== null) {
+                generateRescueQueue();
+            }
         }
     }
 
-    function getDynamicHuntShot() {
-        const cells = playerBoard.querySelectorAll('.cell');
-        let unsunkHits = [];
-        for(let i=0; i<100; i++) {
-            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) unsunkHits.push(i);
-        }
-        if(unsunkHits.length === 0) return null;
+    function generateRescueQueue() {
+        if (shipOrigin === null) return;
+        let steps = lockedAxis === 'hor' ? [1, -1] : [10, -10];
+        cpuHuntQueue = [];
+        steps.forEach(s => {
+            let n = shipOrigin + s;
+            while(n >= 0 && n < 100 && playerBoard.querySelectorAll('.cell')[n].classList.contains('hit')) {
+                n += s;
+            }
+            if (isValidMove(n)) cpuHuntQueue.push(n);
+        });
+    }
 
-        let target = unsunkHits[0];
-        let cluster = [target];
-        let queue = [target];
-        while(queue.length > 0) {
-            let curr = queue.shift();
-            [curr-1, curr+1, curr-10, curr+10].forEach(n => {
-                if(unsunkHits.includes(n) && !cluster.includes(n)) {
-                    if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
-                    cluster.push(n); queue.push(n);
-                }
-            });
+    function isValidMove(n) {
+        if (n < 0 || n > 99) return false;
+        const cell = playerBoard.querySelectorAll('.cell')[n];
+        if (cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return false;
+        
+        // Jeśli mamy oś, sprawdzaj czy pole do niej należy
+        if (lockedAxis === 'hor' && shipOrigin !== null) {
+            if (Math.floor(n/10) !== Math.floor(shipOrigin/10)) return false;
         }
-        let possibleMoves = [];
-        let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
-        let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
-        if (isHorLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min % 10 > 0) possibleMoves.push(min - 1);
-            if (max % 10 < 9) possibleMoves.push(max + 1);
-        } else if (isVerLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min >= 10) possibleMoves.push(min - 10);
-            if (max <= 89) possibleMoves.push(max + 10);
+        if (lockedAxis === 'ver' && shipOrigin !== null) {
+            if (n % 10 !== shipOrigin % 10) return false;
         }
-        possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
-        if (possibleMoves.length === 0) {
-            cluster.forEach(c => {
-                if (c >= 10) possibleMoves.push(c - 10);
-                if (c <= 89) possibleMoves.push(c + 10);
-                if (c % 10 > 0) possibleMoves.push(c - 1);
-                if (c % 10 < 9) possibleMoves.push(c + 1);
-            });
-            possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
-        }
-        return possibleMoves.length > 0 ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)] : null;
+        return true;
     }
 
     function calculateBestMove() {
         let weights = new Array(100).fill(0);
         const cells = playerBoard.querySelectorAll('.cell');
+
         playerShipsAfloat.forEach(shipLen => {
             for (let i = 0; i < 100; i++) {
+                // Poziomo
                 if (i % 10 <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j].classList.contains('miss') || cells[i+j].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j]++;
+                    let canFit = true;
+                    for (let j = 0; j < shipLen; j++) {
+                        if (cells[i + j].classList.contains('miss') || cells[i + j].classList.contains('sunk')) {
+                            canFit = false; break;
+                        }
+                    }
+                    if (canFit) {
+                        for (let j = 0; j < shipLen; j++) {
+                            if (!cells[i + j].classList.contains('hit')) weights[i + j]++;
+                        }
+                    }
                 }
+                // Pionowo
                 if (Math.floor(i / 10) <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j*10].classList.contains('miss') || cells[i+j*10].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j*10]++;
+                    let canFit = true;
+                    for (let j = 0; j < shipLen; j++) {
+                        if (cells[i + j * 10].classList.contains('miss') || cells[i + j * 10].classList.contains('sunk')) {
+                            canFit = false; break;
+                        }
+                    }
+                    if (canFit) {
+                        for (let j = 0; j < shipLen; j++) {
+                            if (!cells[i + j * 10].classList.contains('hit')) weights[i + j * 10]++;
+                        }
+                    }
                 }
             }
         });
-        let maxW = -1; let moves = [];
+
+        let maxWeight = -1;
+        let bestMoves = [];
         availableCPUShots.forEach(i => {
-            if (weights[i] > maxW) { maxW = weights[i]; moves = [i]; }
-            else if (weights[i] === maxW) moves.push(i);
+            if (weights[i] > maxWeight) {
+                maxWeight = weights[i];
+                bestMoves = [i];
+            } else if (weights[i] === maxWeight) {
+                bestMoves.push(i);
+            }
         });
-        return moves[Math.floor(Math.random() * moves.length)];
+        return bestMoves[Math.floor(Math.random() * bestMoves.length)];
     }
 
-    // --- REWOLUCJA W ZAKOŃCZENIU GRY ---
     function endGame(isWin) {
         gameActive = false;
-        statusText.innerText = "KONIEC BITWY";
-
-        // 1. Natychmiastowe pokazanie statków wroga (szare duchy)
-        computerShips.forEach(ship => {
-            ship.coords.forEach(c => {
-                const cell = computerBoard.children[c];
-                if (!cell.classList.contains('hit') && !cell.classList.contains('sunk')) {
-                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.6)';
-                    cell.style.border = '2px dashed #ecf0f1';
-                    cell.style.boxShadow = 'inset 0 0 10px rgba(0,0,0,0.5)';
-                }
-            });
-        });
-
-        // 2. Tworzenie Dużego Napisu na środku (bez ALERT)
-        const screen = document.createElement('div');
-        screen.id = "end-screen-overlay";
-        Object.assign(screen.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column',
-            justifyContent: 'center', alignItems: 'center', zIndex: '10000',
-            fontFamily: 'Impact, sans-serif', color: isWin ? '#4CAF50' : '#F44336'
-        });
-
-        const bigText = document.createElement('h1');
-        bigText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-        bigText.style.fontSize = '6rem';
-        bigText.style.margin = '0';
-        bigText.style.textShadow = '0 0 30px ' + (isWin ? '#4CAF50' : '#F44336');
-
-        const subText = document.createElement('p');
-        subText.innerText = isWin ? "Ocean należy do Ciebie." : "Twoja flota zatonęła.";
-        subText.style.color = 'white';
-        subText.style.fontSize = '1.5rem';
-        subText.style.fontFamily = 'Arial';
-
-        const buttons = document.createElement('div');
-        buttons.style.marginTop = '40px';
-        buttons.style.display = 'flex';
-        buttons.style.gap = '20px';
-
-        const btnView = document.createElement('button');
-        btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
-        styleBtn(btnView, '#3498db');
-        btnView.onclick = () => {
-            screen.remove(); // Zdejmuje zasłonę
-            createMiniReset(); // Dodaje mały przycisk na dole
-        };
-
-        const btnAgain = document.createElement('button');
-        btnAgain.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(btnAgain, '#e67e22');
-        btnAgain.onclick = () => location.reload();
-
-        buttons.appendChild(btnView);
-        buttons.appendChild(btnAgain);
-        screen.appendChild(bigText);
-        screen.appendChild(subText);
-        screen.appendChild(buttons);
-        document.body.appendChild(screen);
-    }
-
-    function styleBtn(btn, color) {
-        Object.assign(btn.style, {
-            padding: '15px 30px', fontSize: '1.2rem', fontWeight: 'bold',
-            cursor: 'pointer', border: 'none', borderRadius: '50px',
-            backgroundColor: color, color: 'white', transition: '0.3s'
-        });
-        btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
-        btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    }
-
-    function createMiniReset() {
-        const mini = document.createElement('button');
-        mini.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(mini, '#e67e22');
-        Object.assign(mini.style, {
-            position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: '9999', boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-        });
-        mini.onclick = () => location.reload();
-        document.body.appendChild(mini);
+        statusText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
+        statusText.style.color = isWin ? "#2e7d32" : "#d32f2f";
+        setTimeout(() => { alert(isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!"); location.reload(); }, 500);
     }
 });
