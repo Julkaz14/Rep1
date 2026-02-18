@@ -1,50 +1,48 @@
-# 🚢 Projekt: Gra w Statki (Battleship)
+# 🚢 Projekt: Bitwa Morska – Pirate Edition
 
 ### Projekt semestralny na zaliczenie przedmiotu
 
-Jest to klasyczna gra strategiczna "Statki", zrealizowana w formie aplikacji webowej. Projekt został zaprojektowany tak, aby był maksymalnie prosty w obsłudze i nie wymagał instalacji dodatkowego oprogramowania.
+Klasyczna gra strategiczna "Statki" w unikalnej oprawie wizualnej wzorowanej na starych mapach morskich. Aplikacja łączy tradycyjną rozgrywkę z nowoczesnymi technikami webowymi, oferując interaktywny system rozmieszczania floty oraz animowane efekty.
 
 ---
 
-## 🚀 Demo Online (Uruchomienie)
-Gra jest hostowana na GitHub Pages. Aby ją przetestować, kliknij w poniższy link:
-👉 **[TUTAJ WKLEJ LINK, KTÓRY DOSTANIESZ W SETTINGS -> PAGES]**
+## 🚀 Demo Online
+Gra jest dostępna publicznie pod adresem:
+👉 **[https://julkaz14.github.io/Rep1/](https://julkaz14.github.io/Rep1/)**
 
 ---
 
-## 📄 Raport z projektu
-Pełna dokumentacja, opis techniczny oraz wymagania znajdują się tutaj:
-👉 [Link do Raportu zaliczeniowego](./Raport.md)
+## 📄 Dokumentacja i Raport
+Szczegółowy opis algorytmów, struktury kodu oraz analiza techniczna projektu:
+👉 [Raport zaliczeniowy (Raport.md)](./Raport.md)
 
 ---
 
-## 🛠️ Technologia i Wymagania
-Projekt został wykonany przy użyciu technologii webowych (tzw. Frontend Stack):
-* **HTML5** – struktura i szkielet gry.
-* **CSS3** – oprawa graficzna i responsywność.
-* **JavaScript (Vanilla)** – cała logika gry, algorytmy strzału oraz obsługa zdarzeń.
-
-**Wymagania sprzętowe:**
-* Dowolne urządzenie z przeglądarką internetową (Chrome, Firefox, Edge, Safari).
-* Projekt nie wymaga instalacji Pythona, Javy ani żadnych baz danych – działa bezpośrednio w przeglądarce.
+## 🛠️ Wykorzystane Technologie
+Projekt został wykonany w architekturze **Serverless** (klient-side), co zapewnia błyskawiczne działanie:
+* **HTML5** – semantyczna struktura gry.
+* **CSS3 (Flexbox/Grid)** – zaawansowana oprawa graficzna, stylizacja na stary pergamin, efekty cieniowania (`drop-shadow`) oraz animacje monet.
+* **JavaScript (ES6+)** – obsługa mechaniki **Drag & Drop**, algorytmów sprawdzania kolizji, logiki bitwy oraz prostego AI przeciwnika.
 
 ---
 
-## 🎮 Instrukcja "Krok po Kroku"
-1.  **Uruchomienie:** Kliknij w link do Demo Online powyżej lub pobierz repozytorium i otwórz plik `index.html` w przeglądarce.
-2.  **Rozmieszczenie:** Statki na Twojej planszy zostaną rozmieszczone losowo przy starcie gry.
-3.  **Rozgrywka:** Twoim zadaniem jest klikanie w pola na planszy komputera (po prawej). 
-4.  **Zasady:**
-    * **Czerwony kolor** – Trafiony!
-    * **Szary kolor** – Pudło.
-5.  **Cel:** Zatop wszystkie statki przeciwnika, zanim on zatopi Twoje!
+## 🎮 Instrukcja i Funkcje Gry
+1.  **Rozpoczęcie:** Kliknij "Rozpocznij Grę", aby wejść do trybu planowania.
+2.  **Zarządzanie Flotą:** * Chwyć statek ze **Stoczni** i przeciągnij go na swoją planszę.
+    * **Kliknij statek**, aby obrócić go o 90° (pion/poziom).
+3.  **Los Przeznaczenia:** Po ustawieniu floty następuje **interaktywny rzut monetą**, który decyduje, kto (Ty czy piracki komputer) odda pierwszy strzał.
+4.  **Bitwa:**
+    * Klikaj w pola na mapie wroga.
+    * 💥 **Eksplozja** – Trafienie!
+    * 🌊 **Fale** – Pudło.
+    * 💀 **Czaszka** – Okręt całkowicie zatopiony.
+5.  **Cel:** Zatop całą flotę przeciwnika i zostań władcą mórz!
 
 ---
 
-## 📂 Struktura plików
-* `index.html` – główny plik strony.
-* `style.css` – definicje wyglądu.
-* `script.js` – logika gry w JavaScript.
-* `README.md` – ten opis.
-* `Raport.md` – oficjalny raport dla prowadzącego.
+## 📂 Struktura Projektu
+* `index.html` – szkielet aplikacji z kontenerami na plansze i stocznię.
+* `style.css` – pełna stylizacja (pergamin, ocean, grafiki statków, animacje 3D monety).
+* `script.js` – serce projektu: system Drag & Drop, logika tury, AI komputera.
+* `Raport.md` – dokumentacja techniczna.
 *
