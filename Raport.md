@@ -46,9 +46,9 @@ Architektura stylów została oparta na nowoczesnych modułach CSS Grid i Flexbo
 ### 3.3. Warstwa Logiczna i Zarządzanie Stanem (JavaScript)
 Silnik gry został podzielony na kilka autonomicznych modułów współpracujących ze sobą:
 
-| Nazwa modułu | Funkcja techniczna | Status implementacji |
+| Moduł | Funkcja w systemie | Sposób interakcji / Opis |
 | :--- | :--- | :--- |
-| Silnik gry | Zarządzanie logiką tur i zdarzeń | Ukończono |
-| Sztuczna Inteligencja | Obliczanie map prawdopodobieństwa | W trakcie testów |
-| Interfejs użytkownika | Renderowanie plansz i animacji | Ukończono |
-
+| **State Manager** | Przechowywanie aktualnej tury i stanu floty | Zarządza zmiennymi `isGameOver` i `currentPlayer` |
+| **Collision Engine** | Weryfikacja współrzędnych i nakładania obiektów | Wykorzystuje funkcję `canPlace` do walidacji pozycji |
+| **AI Controller** | Podejmowanie decyzji przez komputer | Operuje na mapach prawdopodobieństwa (Heat Map) |
+| **Event Bridge** | Obsługa interakcji użytkownika | Mapuje kliknięcia i przeciągnięcia na akcje w grze |
