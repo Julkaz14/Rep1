@@ -15,7 +15,7 @@ Gra jest dostępna publicznie pod adresem:
 ## 📄 Dokumentacja i Raport
 Szczegółowy opis algorytmów (w tym logiki AI), struktury kodu oraz analiza techniczna projektu została przygotowana w systemie składu tekstu **LaTeX**.
 
-👉 **[ZOBACZ PEŁNY RAPORT W FORMACIE PDF](Raport(1).pdf)**
+👉 **[ZOBACZ PEŁNY RAPORT W FORMACIE PDF](Raport (1).pdf)**
 
 ---
 
