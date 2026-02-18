@@ -1,383 +1,281 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
-    const playerBoard = document.getElementById('player-board');
-    const computerBoard = document.getElementById('computer-board');
-    const shipyard = document.getElementById('shipyard');
-    const startBattleBtn = document.getElementById('start-battle');
-    const statusText = document.getElementById('status');
-    const playBtn = document.getElementById('play-btn');
+:root {
+    --parchment: #f4ebd8;
+    --parchment-dark: #e0cca6;
+    --wood: #4a2e15;
+    --ocean: #1e4d77;
+    --ocean-grid: rgba(255, 255, 255, 0.15);
+}
 
-    // AUDIO
-    const music = document.getElementById('bg-music');
-    const sndHit = document.getElementById('snd-hit');
-    const sndSink = document.getElementById('snd-sink');
-    const sndMiss = document.getElementById('snd-miss');
+body {
+    /* STARA MAPA JAKO TŁO */
+    background-color: #2c1e16;
+    background-image: url('https://images.unsplash.com/photo-1582841626027-e432d4310574?auto=format&fit=crop&q=80&w=1920');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Special Elite', cursive;
+    color: #3e2723;
+}
 
-    // CONFIG
-    const shipTypes = [5, 4, 3, 3, 2, 2];
-    const totalHealth = shipTypes.reduce((a, b) => a + b, 0); 
-    
-    let playerShips = [];
-    let computerShips = [];
-    let playerHealth = totalHealth;
-    let cpuHealth = totalHealth;
-    let playerShipsAfloat = [...shipTypes];
-    
-    let draggedShip = null;
-    let gameActive = false;
-    let isPlayerTurn = true;
+.hidden { display: none !important; }
 
-    // AI
-    let availableCPUShots = Array.from({length: 100}, (_, i) => i);
+/* EKRAN STARTOWY */
+.overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); /* Delikatniejsze przyciemnienie, by było widać mapę */
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+}
 
-    function playSound(audioElement) {
-        if(!audioElement) return;
-        audioElement.volume = 0.4;
-        audioElement.currentTime = 0;
-        audioElement.play().catch(() => {});
-    }
+.menu-box {
+    background: var(--parchment);
+    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
+    padding: 60px;
+    border: 4px solid #5d4037;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 30px rgba(139, 90, 43, 0.3);
+}
 
-    playBtn.addEventListener('click', () => {
-        document.getElementById('main-menu').classList.add('hidden');
-        document.getElementById('game-ui').classList.remove('hidden');
-        music.volume = 0.1;
-        music.play().catch(() => {});
-        initGame();
-    });
+.menu-box h1 { 
+    font-family: 'Pirata One', cursive; 
+    font-size: 5rem; 
+    color: #3e2723; 
+    margin: 0; 
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
 
-    function initGame() {
-        playerBoard.innerHTML = ''; 
-        computerBoard.innerHTML = '';
-        renderShipyard();
-        for (let i = 0; i < 100; i++) {
-            const pCell = document.createElement('div');
-            pCell.classList.add('cell'); pCell.dataset.id = i;
-            playerBoard.appendChild(pCell);
-            const cCell = document.createElement('div');
-            cCell.classList.add('cell'); cCell.dataset.id = i;
-            cCell.addEventListener('click', () => playerAttack(i, cCell));
-            computerBoard.appendChild(cCell);
-        }
-    }
+.menu-box p { font-size: 1.4rem; font-weight: bold; margin-bottom: 30px; }
 
-    function renderShipyard() {
-        shipyard.innerHTML = '';
-        shipTypes.forEach((len, idx) => {
-            const slot = document.createElement('div');
-            slot.classList.add('ship-slot');
-            slot.dataset.slotIdx = idx;
-            const ship = document.createElement('div');
-            ship.classList.add('ship-drag');
-            ship.id = `ship-${idx}`;
-            ship.dataset.len = len; ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
-            ship.draggable = true;
-            ship.addEventListener('dragstart', () => { draggedShip = ship; });
-            ship.addEventListener('click', (e) => { e.stopPropagation(); handleShipClick(ship); });
-            slot.appendChild(ship);
-            shipyard.appendChild(slot);
-        });
-    }
+/* KONTENER GRY (Stylizowany na stary pergamin) */
+.game-container {
+    background: var(--parchment);
+    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
+    padding: 30px 50px;
+    border: 3px solid #6d4c41;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 50px rgba(139, 90, 43, 0.2);
+    position: relative;
+    overflow: hidden; /* Żeby kompas nie wychodził za rogi */
+}
 
-    function handleShipClick(ship) {
-        if(gameActive) return;
-        const shipIdx = ship.id.split('-')[1];
-        const originalSlot = shipyard.querySelector(`[data-slot-idx="${shipIdx}"]`);
-        if(ship.parentElement !== originalSlot) {
-            ship.style.position = "relative";
-            ship.style.left = "0"; ship.style.top = "0";
-            playerShips = playerShips.filter(s => s.id !== ship.id);
-            originalSlot.appendChild(ship);
-            startBattleBtn.classList.add('hidden');
-        } else {
-            const isVert = ship.dataset.vert === "true";
-            const len = parseInt(ship.dataset.len);
-            ship.dataset.vert = !isVert;
-            ship.style.width = !isVert ? "40px" : `${len * 40}px`;
-            ship.style.height = !isVert ? `${len * 40}px` : "40px";
-        }
-    }
+/* OZDOBNY KOMPAS W TLE PERGAMINU */
+.compass-decoration {
+    position: absolute;
+    bottom: -30px;
+    right: -30px;
+    width: 300px;
+    height: 300px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/f6/Compass_rose_brown.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+}
 
-    playerBoard.addEventListener('dragover', e => e.preventDefault());
-    playerBoard.addEventListener('drop', e => {
-        e.preventDefault();
-        const rect = playerBoard.getBoundingClientRect();
-        const cellX = Math.floor((e.clientX - rect.left) / 40);
-        const cellY = Math.floor((e.clientY - rect.top) / 40);
-        const startId = cellY * 10 + cellX;
-        const len = parseInt(draggedShip.dataset.len);
-        const vert = draggedShip.dataset.vert === "true";
+.header { position: relative; z-index: 10; border-bottom: 2px dashed #8d6e63; padding-bottom: 15px; margin-bottom: 20px; text-align: center; }
+.header h2 { margin: 0; font-size: 2rem; color: #3e2723; }
 
-        if (canPlace(startId, len, vert, draggedShip.id, playerShips)) {
-            const coords = [];
-            for (let i = 0; i < len; i++) coords.push(vert ? startId + i * 10 : startId + i);
-            playerShips = playerShips.filter(s => s.id !== draggedShip.id);
-            playerShips.push({ id: draggedShip.id, coords: coords, hits: 0, len: len });
-            draggedShip.style.position = "absolute";
-            draggedShip.style.left = `${cellX * 40}px`;
-            draggedShip.style.top = `${cellY * 40}px`;
-            playerBoard.appendChild(draggedShip);
-            if (playerShips.length === shipTypes.length) startBattleBtn.classList.remove('hidden');
-        }
-    });
+.battlefield { display: flex; gap: 50px; align-items: flex-start; position: relative; z-index: 10; }
+.board-section h3 { font-family: 'Pirata One', cursive; font-size: 2rem; margin-top: 0; color: #4e342e; text-align: center; }
 
-    function canPlace(id, len, vert, sId, ships) {
-        for (let i = 0; i < len; i++) {
-            let curr = vert ? id + i * 10 : id + i;
-            if (curr < 0 || curr > 99 || (!vert && Math.floor(curr / 10) !== Math.floor(id / 10))) return false;
-            if (ships.some(s => s.id !== sId && s.coords.includes(curr))) return false;
-        }
-        return true;
-    }
+/* PLANSZA DO GRY */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-template-rows: repeat(10, 40px);
+    background: var(--ocean);
+    border: 4px solid #3e2723;
+    position: relative;
+    width: 400px; height: 400px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
 
-    startBattleBtn.addEventListener('click', () => {
-        gameActive = true;
-        document.getElementById('shipyard-section').classList.add('hidden');
-        document.getElementById('enemy-section').classList.remove('hidden');
-        startBattleBtn.classList.add('hidden');
-        setupCPU();
-        updateStatus();
-    });
+.cell { width: 40px; height: 40px; border: 1px solid var(--ocean-grid); position: relative; }
 
-    function setupCPU() {
-        shipTypes.forEach((len, idx) => {
-            let placed = false;
-            while (!placed) {
-                let start = Math.floor(Math.random() * 100);
-                let vert = Math.random() > 0.5;
-                if (canPlace(start, len, vert, `c-${idx}`, computerShips)) {
-                    let coords = [];
-                    for(let i=0; i<len; i++) coords.push(vert ? start+i*10 : start+i);
-                    computerShips.push({ id: `c-${idx}`, coords: coords, hits: 0, len: len });
-                    placed = true;
-                }
-            }
-        });
-    }
+/* STOCZNIA - Zmiana koloru na lekko ciemniejszy by pasował do pergaminu */
+.shipyard {
+    display: flex; flex-direction: column; gap: 15px;
+    min-width: 220px; padding: 15px;
+    background: rgba(139, 90, 43, 0.1);
+    border: 1px dashed #8d6e63;
+    border-radius: 5px;
+}
 
-    function updateStatus() {
-        if (!gameActive) return;
-        statusText.innerText = isPlayerTurn ? "TWOJA TURA" : "TURA PRZECIWNIKA...";
-        statusText.style.color = isPlayerTurn ? "#1e4d77" : "#d32f2f";
-    }
+.ship-slot { min-height: 40px; width: 100%; display: flex; align-items: center; }
 
-    function playerAttack(id, cell) {
-        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return;
-        let ship = computerShips.find(s => s.coords.includes(id));
-        if (ship) {
-            cell.classList.add('hit'); cpuHealth--;
-            if (++ship.hits === ship.len) {
-                playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = computerBoard.children[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
-            } else playSound(sndHit);
-            if (cpuHealth <= 0) endGame(true);
-        } else {
-            cell.classList.add('miss'); playSound(sndMiss);
-            isPlayerTurn = false; updateStatus();
-            setTimeout(cpuAttack, 700);
-        }
-    }
+.ship-drag {
+    background: var(--wood);
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px); /* Faktura drewna */
+    border: 2px solid #2e1d10;
+    cursor: grab; position: relative; z-index: 10;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+}
 
-    function cpuAttack() {
-        if (!gameActive) return;
+/* EFEKTY TRAFIEŃ NAD STATKIEM */
+.hit::after, .miss::after, .sunk::after {
+    content: ''; position: absolute; inset: 0; z-index: 100;
+    display: flex; justify-content: center; align-items: center;
+}
+.hit::after { background: rgba(255, 69, 0, 0.6); content: '💥'; font-size: 22px; }
+.sunk::after { background: rgba(0, 0, 0, 0.85); content: '💀'; font-size: 24px; }
+.miss::after { content: '🌊'; font-size: 20px; opacity: 0.8; } /* Zamiana kropki na fale/plusk */
 
-        let shotId = getDynamicHuntShot();
-        if (shotId === null) {
-            shotId = calculateBestMove();
-        }
+#start-battle, #play-btn {
+    background: linear-gradient(to bottom, #795548, #4e342e);
+    color: #f4ebd8; border: 2px solid #3e2723; padding: 12px 30px;
+    font-family: 'Pirata One', cursive; font-size: 1.5rem; cursor: pointer;
+    border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
 
-        if (!availableCPUShots.includes(shotId)) {
-            if (gameActive) cpuAttack();
-            return;
-        }
+#start-battle:hover, #play-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+}:root {
+    --parchment: #f4ebd8;
+    --parchment-dark: #e0cca6;
+    --wood: #4a2e15;
+    --ocean: #1e4d77;
+    --ocean-grid: rgba(255, 255, 255, 0.15);
+}
 
-        availableCPUShots = availableCPUShots.filter(id => id !== shotId);
-        const cell = playerBoard.querySelectorAll('.cell')[shotId];
-        let ship = playerShips.find(s => s.coords.includes(shotId));
+body {
+    /* STARA MAPA JAKO TŁO */
+    background-color: #2c1e16;
+    background-image: url('https://images.unsplash.com/photo-1582841626027-e432d4310574?auto=format&fit=crop&q=80&w=1920');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Special Elite', cursive;
+    color: #3e2723;
+}
 
-        if (ship) {
-            cell.classList.add('hit');
-            playerHealth--;
+.hidden { display: none !important; }
 
-            if (++ship.hits === ship.len) {
-                playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = playerBoard.querySelectorAll('.cell')[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
-                const idx = playerShipsAfloat.indexOf(ship.len);
-                if (idx > -1) playerShipsAfloat.splice(idx, 1);
-            } else {
-                playSound(sndHit);
-            }
+/* EKRAN STARTOWY */
+.overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); /* Delikatniejsze przyciemnienie, by było widać mapę */
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+}
 
-            if (playerHealth <= 0) endGame(false);
-            else setTimeout(cpuAttack, 600);
-        } else {
-            cell.classList.add('miss'); playSound(sndMiss);
-            isPlayerTurn = true; updateStatus();
-        }
-    }
+.menu-box {
+    background: var(--parchment);
+    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
+    padding: 60px;
+    border: 4px solid #5d4037;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 30px rgba(139, 90, 43, 0.3);
+}
 
-    function getDynamicHuntShot() {
-        const cells = playerBoard.querySelectorAll('.cell');
-        let unsunkHits = [];
-        for(let i=0; i<100; i++) {
-            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) unsunkHits.push(i);
-        }
-        if(unsunkHits.length === 0) return null;
+.menu-box h1 { 
+    font-family: 'Pirata One', cursive; 
+    font-size: 5rem; 
+    color: #3e2723; 
+    margin: 0; 
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
 
-        let target = unsunkHits[0];
-        let cluster = [target];
-        let queue = [target];
-        while(queue.length > 0) {
-            let curr = queue.shift();
-            [curr-1, curr+1, curr-10, curr+10].forEach(n => {
-                if(unsunkHits.includes(n) && !cluster.includes(n)) {
-                    if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
-                    cluster.push(n); queue.push(n);
-                }
-            });
-        }
-        let possibleMoves = [];
-        let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
-        let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
-        if (isHorLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min % 10 > 0) possibleMoves.push(min - 1);
-            if (max % 10 < 9) possibleMoves.push(max + 1);
-        } else if (isVerLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min >= 10) possibleMoves.push(min - 10);
-            if (max <= 89) possibleMoves.push(max + 10);
-        }
-        possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
-        if (possibleMoves.length === 0) {
-            cluster.forEach(c => {
-                if (c >= 10) possibleMoves.push(c - 10);
-                if (c <= 89) possibleMoves.push(c + 10);
-                if (c % 10 > 0) possibleMoves.push(c - 1);
-                if (c % 10 < 9) possibleMoves.push(c + 1);
-            });
-            possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
-        }
-        return possibleMoves.length > 0 ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)] : null;
-    }
+.menu-box p { font-size: 1.4rem; font-weight: bold; margin-bottom: 30px; }
 
-    function calculateBestMove() {
-        let weights = new Array(100).fill(0);
-        const cells = playerBoard.querySelectorAll('.cell');
-        playerShipsAfloat.forEach(shipLen => {
-            for (let i = 0; i < 100; i++) {
-                if (i % 10 <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j].classList.contains('miss') || cells[i+j].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j]++;
-                }
-                if (Math.floor(i / 10) <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j*10].classList.contains('miss') || cells[i+j*10].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j*10]++;
-                }
-            }
-        });
-        let maxW = -1; let moves = [];
-        availableCPUShots.forEach(i => {
-            if (weights[i] > maxW) { maxW = weights[i]; moves = [i]; }
-            else if (weights[i] === maxW) moves.push(i);
-        });
-        return moves[Math.floor(Math.random() * moves.length)];
-    }
+/* KONTENER GRY (Stylizowany na stary pergamin) */
+.game-container {
+    background: var(--parchment);
+    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
+    padding: 30px 50px;
+    border: 3px solid #6d4c41;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 50px rgba(139, 90, 43, 0.2);
+    position: relative;
+    overflow: hidden; /* Żeby kompas nie wychodził za rogi */
+}
 
-    // --- REWOLUCJA W ZAKOŃCZENIU GRY ---
-    function endGame(isWin) {
-        gameActive = false;
-        statusText.innerText = "KONIEC BITWY";
+/* OZDOBNY KOMPAS W TLE PERGAMINU */
+.compass-decoration {
+    position: absolute;
+    bottom: -30px;
+    right: -30px;
+    width: 300px;
+    height: 300px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/f6/Compass_rose_brown.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 0;
+}
 
-        // 1. Natychmiastowe pokazanie statków wroga (szare duchy)
-        computerShips.forEach(ship => {
-            ship.coords.forEach(c => {
-                const cell = computerBoard.children[c];
-                if (!cell.classList.contains('hit') && !cell.classList.contains('sunk')) {
-                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.6)';
-                    cell.style.border = '2px dashed #ecf0f1';
-                    cell.style.boxShadow = 'inset 0 0 10px rgba(0,0,0,0.5)';
-                }
-            });
-        });
+.header { position: relative; z-index: 10; border-bottom: 2px dashed #8d6e63; padding-bottom: 15px; margin-bottom: 20px; text-align: center; }
+.header h2 { margin: 0; font-size: 2rem; color: #3e2723; }
 
-        // 2. Tworzenie Dużego Napisu na środku (bez ALERT)
-        const screen = document.createElement('div');
-        screen.id = "end-screen-overlay";
-        Object.assign(screen.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column',
-            justifyContent: 'center', alignItems: 'center', zIndex: '10000',
-            fontFamily: 'Impact, sans-serif', color: isWin ? '#4CAF50' : '#F44336'
-        });
+.battlefield { display: flex; gap: 50px; align-items: flex-start; position: relative; z-index: 10; }
+.board-section h3 { font-family: 'Pirata One', cursive; font-size: 2rem; margin-top: 0; color: #4e342e; text-align: center; }
 
-        const bigText = document.createElement('h1');
-        bigText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-        bigText.style.fontSize = '6rem';
-        bigText.style.margin = '0';
-        bigText.style.textShadow = '0 0 30px ' + (isWin ? '#4CAF50' : '#F44336');
+/* PLANSZA DO GRY */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-template-rows: repeat(10, 40px);
+    background: var(--ocean);
+    border: 4px solid #3e2723;
+    position: relative;
+    width: 400px; height: 400px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+}
 
-        const subText = document.createElement('p');
-        subText.innerText = isWin ? "Ocean należy do Ciebie." : "Twoja flota zatonęła.";
-        subText.style.color = 'white';
-        subText.style.fontSize = '1.5rem';
-        subText.style.fontFamily = 'Arial';
+.cell { width: 40px; height: 40px; border: 1px solid var(--ocean-grid); position: relative; }
 
-        const buttons = document.createElement('div');
-        buttons.style.marginTop = '40px';
-        buttons.style.display = 'flex';
-        buttons.style.gap = '20px';
+/* STOCZNIA - Zmiana koloru na lekko ciemniejszy by pasował do pergaminu */
+.shipyard {
+    display: flex; flex-direction: column; gap: 15px;
+    min-width: 220px; padding: 15px;
+    background: rgba(139, 90, 43, 0.1);
+    border: 1px dashed #8d6e63;
+    border-radius: 5px;
+}
 
-        const btnView = document.createElement('button');
-        btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
-        styleBtn(btnView, '#3498db');
-        btnView.onclick = () => {
-            screen.remove(); // Zdejmuje zasłonę
-            createMiniReset(); // Dodaje mały przycisk na dole
-        };
+.ship-slot { min-height: 40px; width: 100%; display: flex; align-items: center; }
 
-        const btnAgain = document.createElement('button');
-        btnAgain.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(btnAgain, '#e67e22');
-        btnAgain.onclick = () => location.reload();
+.ship-drag {
+    background: var(--wood);
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px); /* Faktura drewna */
+    border: 2px solid #2e1d10;
+    cursor: grab; position: relative; z-index: 10;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+}
 
-        buttons.appendChild(btnView);
-        buttons.appendChild(btnAgain);
-        screen.appendChild(bigText);
-        screen.appendChild(subText);
-        screen.appendChild(buttons);
-        document.body.appendChild(screen);
-    }
+/* EFEKTY TRAFIEŃ NAD STATKIEM */
+.hit::after, .miss::after, .sunk::after {
+    content: ''; position: absolute; inset: 0; z-index: 100;
+    display: flex; justify-content: center; align-items: center;
+}
+.hit::after { background: rgba(255, 69, 0, 0.6); content: '💥'; font-size: 22px; }
+.sunk::after { background: rgba(0, 0, 0, 0.85); content: '💀'; font-size: 24px; }
+.miss::after { content: '🌊'; font-size: 20px; opacity: 0.8; } /* Zamiana kropki na fale/plusk */
 
-    function styleBtn(btn, color) {
-        Object.assign(btn.style, {
-            padding: '15px 30px', fontSize: '1.2rem', fontWeight: 'bold',
-            cursor: 'pointer', border: 'none', borderRadius: '50px',
-            backgroundColor: color, color: 'white', transition: '0.3s'
-        });
-        btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
-        btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    }
+#start-battle, #play-btn {
+    background: linear-gradient(to bottom, #795548, #4e342e);
+    color: #f4ebd8; border: 2px solid #3e2723; padding: 12px 30px;
+    font-family: 'Pirata One', cursive; font-size: 1.5rem; cursor: pointer;
+    border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
 
-    function createMiniReset() {
-        const mini = document.createElement('button');
-        mini.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(mini, '#e67e22');
-        Object.assign(mini.style, {
-            position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: '9999', boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-        });
-        mini.onclick = () => location.reload();
-        document.body.appendChild(mini);
-    }
-});
+#start-battle:hover, #play-btn:hover {
+    transform: translateY(2px);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.3);
+}
