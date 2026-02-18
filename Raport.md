@@ -17,6 +17,6 @@
 ​W procesie wytwórczym oraz analitycznym wykorzystano narzędzia generatywnej sztucznej inteligencji. Narzędzia te służyły jako wsparcie w projektowaniu struktur danych oraz optymalizacji algorytmów decyzyjnych.
 
 | Narzędzie | Model | Typ usługi | Zastosowanie techniczne |
-| :--- | :----: | | :----: | ---: |
-| Tekst do lewej | Tekst wyśrodkowany | Tekst do prawej | | tekst |
-| Kolejny wiersz | Dane | Dane | | Dane |
+| :--- | :--- | :--- | :--- |
+| Tekst do lewej | Tekst do lewej | Tekst do lewej | Tekst do lewej |
+| Kolejny wiersz | Dane | Dane | Dane |
