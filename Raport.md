@@ -46,3 +46,9 @@ Architektura stylów została oparta na nowoczesnych modułach CSS Grid i Flexbo
 ### 3.3. Warstwa Logiczna i Zarządzanie Stanem (JavaScript)
 Silnik gry został podzielony na kilka autonomicznych modułów współpracujących ze sobą:
 
+| Nazwa modułu | Funkcja techniczna | Status implementacji |
+| :--- | :--- | :--- |
+| Silnik gry | Zarządzanie logiką tur i zdarzeń | Ukończono |
+| Sztuczna Inteligencja | Obliczanie map prawdopodobieństwa | W trakcie testów |
+| Interfejs użytkownika | Renderowanie plansz i animacji | Ukończono |
+
