@@ -32,3 +32,17 @@ Plik index.html nie pełni jedynie roli kontenera, ale definiuje hierarchię wid
 
 -Przestrzeń Bitewna: Kontener przechowujący dwie niezależne siatki DOM reprezentujące obszary działań gracza oraz przeciwnika.
 
+-​System Komunikatów: Warstwa powiadomień informująca o wynikach tur oraz zakończeniu rozgrywki.
+
+### ​3.2. Warstwa Prezentacji (CSS3)
+Architektura stylów została oparta na nowoczesnych modułach CSS Grid i Flexbox, co pozwoliło na uzyskanie pełnej responsywności bez użycia zewnętrznych bibliotek typu Bootstrap. Kluczowe aspekty tej warstwy to:
+
+-System Siatek: Zastosowanie grid-template-columns: repeat(10, 1fr) umożliwiło stworzenie idealnie kwadratowych pól bitwy, które zachowują proporcje niezależnie od rozdzielczości ekranu.
+
+-Zarządzanie Stanem Wizualnym: Wykorzystano klasy modyfikujące (np. .hit, .miss, .sunk), które są dynamicznie nadawane przez JavaScript, zmieniając wygląd komórek w czasie rzeczywistym.
+
+-Silnik Animacji: Implementacja transformacji rotateY i rotateX pozwoliła na realizację efektów trójwymiarowych, takich jak obracanie monety.
+
+### 3.3. Warstwa Logiczna i Zarządzanie Stanem (JavaScript)
+Silnik gry został podzielony na kilka autonomicznych modułów współpracujących ze sobą:
+
