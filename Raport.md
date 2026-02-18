@@ -58,3 +58,8 @@ Silnik gry został podzielony na kilka autonomicznych modułów współpracując
 
 ## ​4. Szczegółowa analiza implementacji kodu
 ​W tej sekcji dokonano opisu kluczowych funkcji, wyjaśniając rolę każdego fragmentu w systemie rozgrywki.
+
+### 4.1. Dynamiczne generowanie pola bitwy (createBoard)
+Funkcja ta jest odpowiedzialna za inicjalizację plansz dla obu graczy.
+
+
