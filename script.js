@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let draggedShip = null;
     let gameActive = false;
-    let isPlayerTurn = true;
+    let isPlayerTurn = true; // Zostanie nadpisane przez monetę
 
     // AI
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
@@ -130,14 +130,71 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
+    // --- LOGIKA RZUTU MONETĄ PRZED BITWĄ ---
     startBattleBtn.addEventListener('click', () => {
+        document.getElementById('coin-toss-overlay').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-heads').addEventListener('click', () => triggerCoinToss('orzel'));
+    document.getElementById('btn-tails').addEventListener('click', () => triggerCoinToss('reszka'));
+
+    function triggerCoinToss(playerChoice) {
+        document.getElementById('coin-choices').classList.add('hidden');
+        const coinContainer = document.getElementById('coin-container');
+        const coin = document.getElementById('coin');
+        const coinResultText = document.getElementById('coin-result');
+        
+        coinContainer.classList.remove('hidden');
+        coinResultText.innerText = "Losowanie...";
+        coinResultText.style.color = "#3e2723";
+        
+        // Zresetuj pozycję
+        coin.style.transition = 'none';
+        coin.classList.add('spinning');
+
+        setTimeout(() => {
+            coin.classList.remove('spinning');
+            coin.style.transition = 'transform 3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            
+            const isHeads = Math.random() < 0.5;
+            const resultStr = isHeads ? 'orzel' : 'reszka';
+            
+            // Kręci się mocno (5 pełnych obrotów + właściwy obrót)
+            const extraSpins = 5 * 360; 
+            coin.style.transform = `rotateY(${isHeads ? extraSpins : extraSpins + 180}deg)`;
+
+            setTimeout(() => {
+                const playerWon = (playerChoice === resultStr);
+                isPlayerTurn = playerWon; // <-- Moneta decyduje, kto zaczyna!
+                
+                coinResultText.innerText = `Wypadł${isHeads ? ' orzeł' : 'a reszka'}! ` + 
+                                           (playerWon ? "ZACZYNASZ!" : "WRÓG ZACZYNA!");
+                coinResultText.style.color = playerWon ? "#2a9d8f" : "#d32f2f";
+
+                // Po 3 sekundach ukryj monetę i zacznij bitwę
+                setTimeout(() => {
+                    document.getElementById('coin-toss-overlay').classList.add('hidden');
+                    startActualBattle();
+                }, 3000);
+
+            }, 3000); // Czas animacji 3D CSS
+        }, 1000); // Czas trwania "szybkiego" kręcenia przed decydującym ruchem
+    }
+
+    // --- WŁAŚCIWY START BITWY PO MONECIE ---
+    function startActualBattle() {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
         startBattleBtn.classList.add('hidden');
         setupCPU();
         updateStatus();
-    });
+        
+        // Jeśli moneta wylosowała wroga, odpal strzał CPU od razu
+        if (!isPlayerTurn) {
+            setTimeout(cpuAttack, 1000);
+        }
+    }
 
     function setupCPU() {
         shipTypes.forEach((len, idx) => {
@@ -294,12 +351,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return moves[Math.floor(Math.random() * moves.length)];
     }
 
-    // --- REWOLUCJA W ZAKOŃCZENIU GRY ---
     function endGame(isWin) {
         gameActive = false;
         statusText.innerText = "KONIEC BITWY";
 
-        // 1. Natychmiastowe pokazanie statków wroga (szare duchy)
         computerShips.forEach(ship => {
             ship.coords.forEach(c => {
                 const cell = computerBoard.children[c];
@@ -311,7 +366,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // 2. Tworzenie Dużego Napisu na środku (bez ALERT)
         const screen = document.createElement('div');
         screen.id = "end-screen-overlay";
         Object.assign(screen.style, {
@@ -342,8 +396,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
         styleBtn(btnView, '#3498db');
         btnView.onclick = () => {
-            screen.remove(); // Zdejmuje zasłonę
-            createMiniReset(); // Dodaje mały przycisk na dole
+            screen.remove(); 
+            createMiniReset(); 
         };
 
         const btnAgain = document.createElement('button');
