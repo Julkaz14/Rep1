@@ -7,7 +7,6 @@
 }
 
 body {
-    /* STARA MAPA JAKO TŁO */
     background-color: #2c1e16;
     background-image: url('https://images.unsplash.com/photo-1582841626027-e432d4310574?auto=format&fit=crop&q=80&w=1920');
     background-size: cover;
@@ -24,10 +23,9 @@ body {
 
 .hidden { display: none !important; }
 
-/* EKRAN STARTOWY */
 .overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7); /* Delikatniejsze przyciemnienie, by było widać mapę */
+    background: rgba(0,0,0,0.7);
     display: flex; justify-content: center; align-items: center;
     z-index: 1000;
 }
@@ -42,17 +40,16 @@ body {
     box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 30px rgba(139, 90, 43, 0.3);
 }
 
-.menu-box h1 { 
+.menu-box h1, .menu-box h2 { 
     font-family: 'Pirata One', cursive; 
-    font-size: 5rem; 
     color: #3e2723; 
     margin: 0; 
     text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
 }
-
+.menu-box h1 { font-size: 5rem; }
+.menu-box h2 { font-size: 3.5rem; }
 .menu-box p { font-size: 1.4rem; font-weight: bold; margin-bottom: 30px; }
 
-/* KONTENER GRY (Stylizowany na stary pergamin) */
 .game-container {
     background: var(--parchment);
     background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
@@ -61,10 +58,9 @@ body {
     border-radius: 10px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 50px rgba(139, 90, 43, 0.2);
     position: relative;
-    overflow: hidden; /* Żeby kompas nie wychodził za rogi */
+    overflow: hidden; 
 }
 
-/* OZDOBNY KOMPAS W TLE PERGAMINU */
 .compass-decoration {
     position: absolute;
     bottom: -30px;
@@ -85,7 +81,6 @@ body {
 .battlefield { display: flex; gap: 50px; align-items: flex-start; position: relative; z-index: 10; }
 .board-section h3 { font-family: 'Pirata One', cursive; font-size: 2rem; margin-top: 0; color: #4e342e; text-align: center; }
 
-/* PLANSZA DO GRY */
 .grid {
     display: grid;
     grid-template-columns: repeat(10, 40px);
@@ -99,7 +94,6 @@ body {
 
 .cell { width: 40px; height: 40px; border: 1px solid var(--ocean-grid); position: relative; }
 
-/* STOCZNIA - Zmiana koloru na lekko ciemniejszy by pasował do pergaminu */
 .shipyard {
     display: flex; flex-direction: column; gap: 15px;
     min-width: 220px; padding: 15px;
@@ -112,170 +106,66 @@ body {
 
 .ship-drag {
     background: var(--wood);
-    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px); /* Faktura drewna */
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px);
     border: 2px solid #2e1d10;
     cursor: grab; position: relative; z-index: 10;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
 }
 
-/* EFEKTY TRAFIEŃ NAD STATKIEM */
 .hit::after, .miss::after, .sunk::after {
     content: ''; position: absolute; inset: 0; z-index: 100;
     display: flex; justify-content: center; align-items: center;
 }
 .hit::after { background: rgba(255, 69, 0, 0.6); content: '💥'; font-size: 22px; }
 .sunk::after { background: rgba(0, 0, 0, 0.85); content: '💀'; font-size: 24px; }
-.miss::after { content: '🌊'; font-size: 20px; opacity: 0.8; } /* Zamiana kropki na fale/plusk */
+.miss::after { content: '🌊'; font-size: 20px; opacity: 0.8; } 
 
-#start-battle, #play-btn {
+#start-battle, #play-btn, #btn-heads, #btn-tails {
     background: linear-gradient(to bottom, #795548, #4e342e);
     color: #f4ebd8; border: 2px solid #3e2723; padding: 12px 30px;
     font-family: 'Pirata One', cursive; font-size: 1.5rem; cursor: pointer;
     border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     transition: transform 0.1s, box-shadow 0.1s;
+    margin: 5px;
 }
 
-#start-battle:hover, #play-btn:hover {
-    transform: translateY(2px);
-    box-shadow: 0 2px 3px rgba(0,0,0,0.3);
-}:root {
-    --parchment: #f4ebd8;
-    --parchment-dark: #e0cca6;
-    --wood: #4a2e15;
-    --ocean: #1e4d77;
-    --ocean-grid: rgba(255, 255, 255, 0.15);
-}
-
-body {
-    /* STARA MAPA JAKO TŁO */
-    background-color: #2c1e16;
-    background-image: url('https://images.unsplash.com/photo-1582841626027-e432d4310574?auto=format&fit=crop&q=80&w=1920');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-family: 'Special Elite', cursive;
-    color: #3e2723;
-}
-
-.hidden { display: none !important; }
-
-/* EKRAN STARTOWY */
-.overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7); /* Delikatniejsze przyciemnienie, by było widać mapę */
-    display: flex; justify-content: center; align-items: center;
-    z-index: 1000;
-}
-
-.menu-box {
-    background: var(--parchment);
-    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
-    padding: 60px;
-    border: 4px solid #5d4037;
-    border-radius: 8px;
-    text-align: center;
-    box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 30px rgba(139, 90, 43, 0.3);
-}
-
-.menu-box h1 { 
-    font-family: 'Pirata One', cursive; 
-    font-size: 5rem; 
-    color: #3e2723; 
-    margin: 0; 
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-}
-
-.menu-box p { font-size: 1.4rem; font-weight: bold; margin-bottom: 30px; }
-
-/* KONTENER GRY (Stylizowany na stary pergamin) */
-.game-container {
-    background: var(--parchment);
-    background-image: url('https://www.transparenttextures.com/patterns/old-paper.png');
-    padding: 30px 50px;
-    border: 3px solid #6d4c41;
-    border-radius: 10px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 50px rgba(139, 90, 43, 0.2);
-    position: relative;
-    overflow: hidden; /* Żeby kompas nie wychodził za rogi */
-}
-
-/* OZDOBNY KOMPAS W TLE PERGAMINU */
-.compass-decoration {
-    position: absolute;
-    bottom: -30px;
-    right: -30px;
-    width: 300px;
-    height: 300px;
-    background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/f6/Compass_rose_brown.svg');
-    background-size: contain;
-    background-repeat: no-repeat;
-    opacity: 0.08;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.header { position: relative; z-index: 10; border-bottom: 2px dashed #8d6e63; padding-bottom: 15px; margin-bottom: 20px; text-align: center; }
-.header h2 { margin: 0; font-size: 2rem; color: #3e2723; }
-
-.battlefield { display: flex; gap: 50px; align-items: flex-start; position: relative; z-index: 10; }
-.board-section h3 { font-family: 'Pirata One', cursive; font-size: 2rem; margin-top: 0; color: #4e342e; text-align: center; }
-
-/* PLANSZA DO GRY */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(10, 40px);
-    grid-template-rows: repeat(10, 40px);
-    background: var(--ocean);
-    border: 4px solid #3e2723;
-    position: relative;
-    width: 400px; height: 400px;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-}
-
-.cell { width: 40px; height: 40px; border: 1px solid var(--ocean-grid); position: relative; }
-
-/* STOCZNIA - Zmiana koloru na lekko ciemniejszy by pasował do pergaminu */
-.shipyard {
-    display: flex; flex-direction: column; gap: 15px;
-    min-width: 220px; padding: 15px;
-    background: rgba(139, 90, 43, 0.1);
-    border: 1px dashed #8d6e63;
-    border-radius: 5px;
-}
-
-.ship-slot { min-height: 40px; width: 100%; display: flex; align-items: center; }
-
-.ship-drag {
-    background: var(--wood);
-    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.1), rgba(0,0,0,0.1) 2px, transparent 2px, transparent 4px); /* Faktura drewna */
-    border: 2px solid #2e1d10;
-    cursor: grab; position: relative; z-index: 10;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
-}
-
-/* EFEKTY TRAFIEŃ NAD STATKIEM */
-.hit::after, .miss::after, .sunk::after {
-    content: ''; position: absolute; inset: 0; z-index: 100;
-    display: flex; justify-content: center; align-items: center;
-}
-.hit::after { background: rgba(255, 69, 0, 0.6); content: '💥'; font-size: 22px; }
-.sunk::after { background: rgba(0, 0, 0, 0.85); content: '💀'; font-size: 24px; }
-.miss::after { content: '🌊'; font-size: 20px; opacity: 0.8; } /* Zamiana kropki na fale/plusk */
-
-#start-battle, #play-btn {
-    background: linear-gradient(to bottom, #795548, #4e342e);
-    color: #f4ebd8; border: 2px solid #3e2723; padding: 12px 30px;
-    font-family: 'Pirata One', cursive; font-size: 1.5rem; cursor: pointer;
-    border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-
-#start-battle:hover, #play-btn:hover {
+#start-battle:hover, #play-btn:hover, #btn-heads:hover, #btn-tails:hover {
     transform: translateY(2px);
     box-shadow: 0 2px 3px rgba(0,0,0,0.3);
 }
+
+/* --- STYLE DLA MONETY --- */
+#coin-container {
+    perspective: 1000px;
+    margin: 30px auto;
+    width: 120px;
+    height: 120px;
+}
+
+#coin {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-radius: 50%;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+.coin-face {
+    position: absolute; width: 100%; height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-family: 'Pirata One', cursive; font-size: 1.8rem; color: #4a2e15;
+    background: radial-gradient(circle, #f4ce42 0%, #b8860b 100%);
+    border: 4px solid #8b6508;
+    box-sizing: border-box;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+}
+
+.coin-back { transform: rotateY(180deg); }
+
+.spinning { animation: spin 0.4s linear infinite; }
+@keyframes spin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+
+#coin-result { font-size: 2rem; font-family: 'Pirata One', cursive; margin-top: 20px; text-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
