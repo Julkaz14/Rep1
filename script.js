@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // UI ELEMENTS
     const playerBoard = document.getElementById('player-board');
     const computerBoard = document.getElementById('computer-board');
     const shipyard = document.getElementById('shipyard');
@@ -7,13 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusText = document.getElementById('status');
     const playBtn = document.getElementById('play-btn');
 
-    // AUDIO
     const music = document.getElementById('bg-music');
     const sndHit = document.getElementById('snd-hit');
     const sndSink = document.getElementById('snd-sink');
     const sndMiss = document.getElementById('snd-miss');
 
-    // CONFIG
     const shipTypes = [5, 4, 3, 3, 2, 2];
     const totalHealth = shipTypes.reduce((a, b) => a + b, 0); 
     
@@ -25,9 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let draggedShip = null;
     let gameActive = false;
-    let isPlayerTurn = true; // Zostanie nadpisane przez monetę
-
-    // AI
+    let isPlayerTurn = true;
     let availableCPUShots = Array.from({length: 100}, (_, i) => i);
 
     function playSound(audioElement) {
@@ -70,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ship.classList.add('ship-drag');
             ship.id = `ship-${idx}`;
             ship.dataset.len = len; ship.dataset.vert = "false";
-            ship.style.width = `${len * 40}px`; ship.style.height = `40px`;
             ship.draggable = true;
             ship.addEventListener('dragstart', () => { draggedShip = ship; });
             ship.addEventListener('click', (e) => { e.stopPropagation(); handleShipClick(ship); });
@@ -91,10 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             startBattleBtn.classList.add('hidden');
         } else {
             const isVert = ship.dataset.vert === "true";
-            const len = parseInt(ship.dataset.len);
             ship.dataset.vert = !isVert;
-            ship.style.width = !isVert ? "40px" : `${len * 40}px`;
-            ship.style.height = !isVert ? `${len * 40}px` : "40px";
         }
     }
 
@@ -130,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // --- LOGIKA RZUTU MONETĄ PRZED BITWĄ ---
+    // MONETA I START
     startBattleBtn.addEventListener('click', () => {
         document.getElementById('coin-toss-overlay').classList.remove('hidden');
     });
@@ -140,60 +131,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function triggerCoinToss(playerChoice) {
         document.getElementById('coin-choices').classList.add('hidden');
-        const coinContainer = document.getElementById('coin-container');
         const coin = document.getElementById('coin');
         const coinResultText = document.getElementById('coin-result');
-        
-        coinContainer.classList.remove('hidden');
-        coinResultText.innerText = "Losowanie...";
-        coinResultText.style.color = "#3e2723";
-        
-        // Zresetuj pozycję
-        coin.style.transition = 'none';
+        document.getElementById('coin-container').classList.remove('hidden');
         coin.classList.add('spinning');
 
         setTimeout(() => {
             coin.classList.remove('spinning');
-            coin.style.transition = 'transform 3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-            
             const isHeads = Math.random() < 0.5;
             const resultStr = isHeads ? 'orzel' : 'reszka';
-            
-            // Kręci się mocno (5 pełnych obrotów + właściwy obrót)
-            const extraSpins = 5 * 360; 
-            coin.style.transform = `rotateY(${isHeads ? extraSpins : extraSpins + 180}deg)`;
+            coin.style.transform = `rotateY(${isHeads ? 1800 : 1980}deg)`;
 
             setTimeout(() => {
-                const playerWon = (playerChoice === resultStr);
-                isPlayerTurn = playerWon; // <-- Moneta decyduje, kto zaczyna!
-                
-                coinResultText.innerText = `Wypadł${isHeads ? ' orzeł' : 'a reszka'}! ` + 
-                                           (playerWon ? "ZACZYNASZ!" : "WRÓG ZACZYNA!");
-                coinResultText.style.color = playerWon ? "#2a9d8f" : "#d32f2f";
-
-                // Po 3 sekundach ukryj monetę i zacznij bitwę
+                isPlayerTurn = (playerChoice === resultStr);
+                coinResultText.innerText = isPlayerTurn ? "ZACZYNASZ!" : "WRÓG ZACZYNA!";
                 setTimeout(() => {
                     document.getElementById('coin-toss-overlay').classList.add('hidden');
                     startActualBattle();
-                }, 3000);
-
-            }, 3000); // Czas animacji 3D CSS
-        }, 1000); // Czas trwania "szybkiego" kręcenia przed decydującym ruchem
+                }, 2000);
+            }, 3000);
+        }, 1000);
     }
 
-    // --- WŁAŚCIWY START BITWY PO MONECIE ---
     function startActualBattle() {
         gameActive = true;
         document.getElementById('shipyard-section').classList.add('hidden');
         document.getElementById('enemy-section').classList.remove('hidden');
-        startBattleBtn.classList.add('hidden');
         setupCPU();
         updateStatus();
-        
-        // Jeśli moneta wylosowała wroga, odpal strzał CPU od razu
-        if (!isPlayerTurn) {
-            setTimeout(cpuAttack, 1000);
-        }
+        if (!isPlayerTurn) setTimeout(cpuAttack, 1000);
     }
 
     function setupCPU() {
@@ -219,219 +185,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function playerAttack(id, cell) {
-        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss') || cell.classList.contains('sunk')) return;
+        if (!gameActive || !isPlayerTurn || cell.classList.contains('hit') || cell.classList.contains('miss')) return;
         let ship = computerShips.find(s => s.coords.includes(id));
         if (ship) {
             cell.classList.add('hit'); cpuHealth--;
             if (++ship.hits === ship.len) {
                 playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = computerBoard.children[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
+                ship.coords.forEach(c => computerBoard.children[c].classList.add('sunk'));
             } else playSound(sndHit);
             if (cpuHealth <= 0) endGame(true);
         } else {
             cell.classList.add('miss'); playSound(sndMiss);
-            isPlayerTurn = false; updateStatus();
-            setTimeout(cpuAttack, 700);
+            isPlayerTurn = false; updateStatus(); setTimeout(cpuAttack, 800);
         }
     }
 
     function cpuAttack() {
         if (!gameActive) return;
-
-        let shotId = getDynamicHuntShot();
-        if (shotId === null) {
-            shotId = calculateBestMove();
-        }
-
-        if (!availableCPUShots.includes(shotId)) {
-            if (gameActive) cpuAttack();
-            return;
-        }
-
+        let shotId = availableCPUShots[Math.floor(Math.random() * availableCPUShots.length)];
         availableCPUShots = availableCPUShots.filter(id => id !== shotId);
         const cell = playerBoard.querySelectorAll('.cell')[shotId];
         let ship = playerShips.find(s => s.coords.includes(shotId));
 
         if (ship) {
-            cell.classList.add('hit');
-            playerHealth--;
-
+            cell.classList.add('hit'); playerHealth--;
             if (++ship.hits === ship.len) {
                 playSound(sndSink);
-                ship.coords.forEach(c => {
-                    let targetCell = playerBoard.querySelectorAll('.cell')[c];
-                    targetCell.classList.add('sunk');
-                    targetCell.style.backgroundColor = '#2c3e50'; 
-                });
-                const idx = playerShipsAfloat.indexOf(ship.len);
-                if (idx > -1) playerShipsAfloat.splice(idx, 1);
-            } else {
-                playSound(sndHit);
-            }
-
+                ship.coords.forEach(c => playerBoard.querySelectorAll('.cell')[c].classList.add('sunk'));
+            } else playSound(sndHit);
             if (playerHealth <= 0) endGame(false);
-            else setTimeout(cpuAttack, 600);
+            else setTimeout(cpuAttack, 800);
         } else {
             cell.classList.add('miss'); playSound(sndMiss);
             isPlayerTurn = true; updateStatus();
         }
     }
 
-    function getDynamicHuntShot() {
-        const cells = playerBoard.querySelectorAll('.cell');
-        let unsunkHits = [];
-        for(let i=0; i<100; i++) {
-            if(cells[i].classList.contains('hit') && !cells[i].classList.contains('sunk')) unsunkHits.push(i);
-        }
-        if(unsunkHits.length === 0) return null;
-
-        let target = unsunkHits[0];
-        let cluster = [target];
-        let queue = [target];
-        while(queue.length > 0) {
-            let curr = queue.shift();
-            [curr-1, curr+1, curr-10, curr+10].forEach(n => {
-                if(unsunkHits.includes(n) && !cluster.includes(n)) {
-                    if (Math.abs(curr - n) === 1 && Math.floor(curr/10) !== Math.floor(n/10)) return;
-                    cluster.push(n); queue.push(n);
-                }
-            });
-        }
-        let possibleMoves = [];
-        let isHorLine = cluster.length > 1 && cluster.every(c => Math.floor(c/10) === Math.floor(cluster[0]/10));
-        let isVerLine = cluster.length > 1 && cluster.every(c => c % 10 === cluster[0] % 10);
-        if (isHorLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min % 10 > 0) possibleMoves.push(min - 1);
-            if (max % 10 < 9) possibleMoves.push(max + 1);
-        } else if (isVerLine) {
-            let min = Math.min(...cluster); let max = Math.max(...cluster);
-            if (min >= 10) possibleMoves.push(min - 10);
-            if (max <= 89) possibleMoves.push(max + 10);
-        }
-        possibleMoves = possibleMoves.filter(m => availableCPUShots.includes(m));
-        if (possibleMoves.length === 0) {
-            cluster.forEach(c => {
-                if (c >= 10) possibleMoves.push(c - 10);
-                if (c <= 89) possibleMoves.push(c + 10);
-                if (c % 10 > 0) possibleMoves.push(c - 1);
-                if (c % 10 < 9) possibleMoves.push(c + 1);
-            });
-            possibleMoves = [...new Set(possibleMoves)].filter(m => availableCPUShots.includes(m));
-        }
-        return possibleMoves.length > 0 ? possibleMoves[Math.floor(Math.random() * possibleMoves.length)] : null;
-    }
-
-    function calculateBestMove() {
-        let weights = new Array(100).fill(0);
-        const cells = playerBoard.querySelectorAll('.cell');
-        playerShipsAfloat.forEach(shipLen => {
-            for (let i = 0; i < 100; i++) {
-                if (i % 10 <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j].classList.contains('miss') || cells[i+j].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j]++;
-                }
-                if (Math.floor(i / 10) <= 10 - shipLen) {
-                    let fit = true;
-                    for (let j = 0; j < shipLen; j++) if (cells[i+j*10].classList.contains('miss') || cells[i+j*10].classList.contains('sunk')) fit = false;
-                    if (fit) for (let j = 0; j < shipLen; j++) weights[i+j*10]++;
-                }
-            }
-        });
-        let maxW = -1; let moves = [];
-        availableCPUShots.forEach(i => {
-            if (weights[i] > maxW) { maxW = weights[i]; moves = [i]; }
-            else if (weights[i] === maxW) moves.push(i);
-        });
-        return moves[Math.floor(Math.random() * moves.length)];
-    }
-
     function endGame(isWin) {
         gameActive = false;
-        statusText.innerText = "KONIEC BITWY";
-
-        computerShips.forEach(ship => {
-            ship.coords.forEach(c => {
-                const cell = computerBoard.children[c];
-                if (!cell.classList.contains('hit') && !cell.classList.contains('sunk')) {
-                    cell.style.backgroundColor = 'rgba(149, 165, 166, 0.6)';
-                    cell.style.border = '2px dashed #ecf0f1';
-                    cell.style.boxShadow = 'inset 0 0 10px rgba(0,0,0,0.5)';
-                }
-            });
-        });
-
-        const screen = document.createElement('div');
-        screen.id = "end-screen-overlay";
-        Object.assign(screen.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column',
-            justifyContent: 'center', alignItems: 'center', zIndex: '10000',
-            fontFamily: 'Impact, sans-serif', color: isWin ? '#4CAF50' : '#F44336'
-        });
-
-        const bigText = document.createElement('h1');
-        bigText.innerText = isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!";
-        bigText.style.fontSize = '6rem';
-        bigText.style.margin = '0';
-        bigText.style.textShadow = '0 0 30px ' + (isWin ? '#4CAF50' : '#F44336');
-
-        const subText = document.createElement('p');
-        subText.innerText = isWin ? "Ocean należy do Ciebie." : "Twoja flota zatonęła.";
-        subText.style.color = 'white';
-        subText.style.fontSize = '1.5rem';
-        subText.style.fontFamily = 'Arial';
-
-        const buttons = document.createElement('div');
-        buttons.style.marginTop = '40px';
-        buttons.style.display = 'flex';
-        buttons.style.gap = '20px';
-
-        const btnView = document.createElement('button');
-        btnView.innerText = "ZOBACZ PLANSZĘ WROGA";
-        styleBtn(btnView, '#3498db');
-        btnView.onclick = () => {
-            screen.remove(); 
-            createMiniReset(); 
-        };
-
-        const btnAgain = document.createElement('button');
-        btnAgain.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(btnAgain, '#e67e22');
-        btnAgain.onclick = () => location.reload();
-
-        buttons.appendChild(btnView);
-        buttons.appendChild(btnAgain);
-        screen.appendChild(bigText);
-        screen.appendChild(subText);
-        screen.appendChild(buttons);
-        document.body.appendChild(screen);
-    }
-
-    function styleBtn(btn, color) {
-        Object.assign(btn.style, {
-            padding: '15px 30px', fontSize: '1.2rem', fontWeight: 'bold',
-            cursor: 'pointer', border: 'none', borderRadius: '50px',
-            backgroundColor: color, color: 'white', transition: '0.3s'
-        });
-        btn.onmouseover = () => btn.style.transform = 'scale(1.1)';
-        btn.onmouseout = () => btn.style.transform = 'scale(1)';
-    }
-
-    function createMiniReset() {
-        const mini = document.createElement('button');
-        mini.innerText = "ZAGRAJ PONOWNIE";
-        styleBtn(mini, '#e67e22');
-        Object.assign(mini.style, {
-            position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-            zIndex: '9999', boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-        });
-        mini.onclick = () => location.reload();
-        document.body.appendChild(mini);
+        alert(isWin ? "ZWYCIĘSTWO!" : "PRZEGRANA!");
+        location.reload();
     }
 });
