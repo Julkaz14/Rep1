@@ -52,3 +52,9 @@ Silnik gry został podzielony na kilka autonomicznych modułów współpracując
 | **Collision Engine** | Weryfikacja współrzędnych i nakładania obiektów | Wykorzystuje funkcję `canPlace` do walidacji pozycji |
 | **AI Controller** | Podejmowanie decyzji przez komputer | Operuje na mapach prawdopodobieństwa (Heat Map) |
 | **Event Bridge** | Obsługa interakcji użytkownika | Mapuje kliknięcia i przeciągnięcia na akcje w grze |
+
+### 3.4. Przepływ danych (Data Flow)
+​Komunikacja wewnątrz systemu odbywa się w modelu zdarzeniowym. Wykonanie ruchu przez gracza generuje sygnał, który przechodzi przez walidator trafienia, aktualizuje tablicę obiektów statków, a następnie wymusza przerysowanie odpowiedniego fragmentu interfejsu (re-renderowanie komórki). Dzięki takiemu podejściu, logika gry jest odseparowana od prezentacji, co ułatwia debugowanie i rozwój aplikacji.
+
+## ​4. Szczegółowa analiza implementacji kodu
+​W tej sekcji dokonano opisu kluczowych funkcji, wyjaśniając rolę każdego fragmentu w systemie rozgrywki.
