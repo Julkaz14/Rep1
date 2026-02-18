@@ -18,5 +18,5 @@
 
 | Narzędzie | Model | Typ usługi | Zastosowanie techniczne |
 | :--- | :--- | :--- | :--- |
-| Google Gemini | Gemini 1.5 Pro | Google AI Pro | Tekst do lewej |
-| Kolejny wiersz | Dane | Dane | Dane |
+| Google Gemini | Gemini 1.5 Pro | Google AI Pro | Generowanie heurystyk AI oraz optymalizacja kodu |
+
