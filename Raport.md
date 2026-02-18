@@ -62,4 +62,4 @@ Silnik gry został podzielony na kilka autonomicznych modułów współpracując
 ### 4.1. Dynamiczne generowanie pola bitwy (createBoard)
 Funkcja ta jest odpowiedzialna za inicjalizację plansz dla obu graczy.
 
-
+(https://www.google.com/search?q=Zdjecie1.jpeg).
