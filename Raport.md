@@ -12,6 +12,6 @@
 
 -Interaktywnym UI/UX, wykorzystującym API Drag & Drop oraz transformacje przestrzenne 3D.
 
-## 1. Metryka narzędzi AI i licencjonowanie
+## 2. Metryka narzędzi AI i licencjonowanie
 
 ​W procesie wytwórczym oraz analitycznym wykorzystano narzędzia generatywnej sztucznej inteligencji. Narzędzia te służyły jako wsparcie w projektowaniu struktur danych oraz optymalizacji algorytmów decyzyjnych.
