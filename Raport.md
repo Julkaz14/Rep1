@@ -18,5 +18,5 @@
 
 | Narzędzie | Model | Typ usługi | Zastosowanie techniczne |
 | :--- | :--- | :--- | :--- |
-| Tekst do lewej | Tekst do lewej | Tekst do lewej | Tekst do lewej |
+| Google Gemini | Gemini 1.5 Pro | Google AI Pro | Tekst do lewej |
 | Kolejny wiersz | Dane | Dane | Dane |
