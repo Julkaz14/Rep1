@@ -15,3 +15,8 @@
 ## 2. Metryka narzędzi AI i licencjonowanie
 
 ​W procesie wytwórczym oraz analitycznym wykorzystano narzędzia generatywnej sztucznej inteligencji. Narzędzia te służyły jako wsparcie w projektowaniu struktur danych oraz optymalizacji algorytmów decyzyjnych.
+
+| Nagłówek 1 | Nagłówek 2 | Nagłówek 3 |
+| :--- | :----: | ---: |
+| Tekst do lewej | Tekst wyśrodkowany | Tekst do prawej |
+| Kolejny wiersz | Dane | Dane |
